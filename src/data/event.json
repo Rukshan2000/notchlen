@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "name": "Concert",
+    "date": "2024-12-01",
+    "location": "City Hall",
+    "description": "An amazing concert experience.",
+    "price": 50
+  },
+  {
+    "id": 2,
+    "name": "Art Exhibition",
+    "date": "2024-12-05",
+    "location": "Art Gallery",
+    "description": "Explore contemporary art.",
+    "price": 20
+  }
+]
