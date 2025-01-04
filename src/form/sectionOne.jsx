@@ -131,13 +131,13 @@ const CorporateBusinessForm = () => {
       <SideNav /> 
       <div className="flex items-center justify-between mb-6 ">
         <div className="flex items-center">
-          <div className="flex items-center justify-center w-8 h-8 text-white bg-blue-500 rounded-full">3</div>
+          <div className="flex items-center justify-center w-8 h-8 text-white bg-blue-500 rounded-full">1</div>
           <span className="ml-2 font-medium text-blue-500">Contact Information
           </span>
         </div>
         <div className="w-full h-1 mx-2 bg-gray-300"></div>
         <div className="flex items-center">
-          <div className="flex items-center justify-center w-8 h-8 text-gray-600 bg-gray-300 rounded-full">4</div>
+          <div className="flex items-center justify-center w-8 h-8 text-gray-600 bg-gray-300 rounded-full">3</div>
           <span className="ml-2 text-gray-600">Business Information</span>
         </div>
         <div className="w-full h-1 mx-2 bg-gray-300"></div>
@@ -147,17 +147,17 @@ const CorporateBusinessForm = () => {
         </div>
         <div className="w-full h-1 mx-2 bg-gray-300"></div>
         <div className="flex items-center">
-          <div className="flex items-center justify-center w-8 h-8 text-gray-600 bg-gray-300 rounded-full">4</div>
+          <div className="flex items-center justify-center w-8 h-8 text-gray-600 bg-gray-300 rounded-full">5</div>
           <span className="ml-2 text-gray-600">Shareholder Information</span>
         </div>
         <div className="w-full h-1 mx-2 bg-gray-300"></div>
         <div className="flex items-center">
-          <div className="flex items-center justify-center w-8 h-8 text-gray-600 bg-gray-300 rounded-full">5</div>
+          <div className="flex items-center justify-center w-8 h-8 text-gray-600 bg-gray-300 rounded-full">6</div>
           <span className="ml-2 text-gray-600">Payment Verification</span>
         </div>
         <div className="w-full h-1 mx-2 bg-gray-300"></div>
         <div className="flex items-center">
-          <div className="flex items-center justify-center w-8 h-8 text-gray-600 bg-gray-300 rounded-full">6</div>
+          <div className="flex items-center justify-center w-8 h-8 text-gray-600 bg-gray-300 rounded-full">7</div>
           <span className="ml-2 text-gray-600">Contact Verification</span>
         </div>
 
