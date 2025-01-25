@@ -64,7 +64,7 @@ const OtpVerificationForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Verify both OTPs
     let verificationSuccess = true;
 
@@ -104,9 +104,13 @@ const OtpVerificationForm = () => {
     }
   };
 
+  const handleBack = () => {
+    navigate('/section-five');
+  };
+
   return (
     <div className="p-6 mx-auto mt-12 bg-gray-100 rounded-lg shadow-lg max-w-8xl">
-      <SideNav /> 
+      <SideNav />
       <div className="flex items-center justify-between mb-6 ">
         <div className="flex items-center">
           <div className="flex items-center justify-center w-8 h-8 text-white bg-green-500 rounded-full">1</div>
@@ -124,7 +128,7 @@ const OtpVerificationForm = () => {
           <span className="ml-2 font-medium text-green-500">Director Information</span>
         </div>
         <div className="w-full h-1 mx-2 bg-gray-300"></div>
-      
+
         <div className="flex items-center">
           <div className="flex items-center justify-center w-8 h-8 text-white bg-green-500 rounded-full">3</div>
           <span className="ml-2 font-medium text-green-500">Shareholder Information</span>
@@ -141,10 +145,10 @@ const OtpVerificationForm = () => {
         </div>
 
       </div>
-      
-            <h2 className="mb-6 text-2xl font-semibold text-center">Email and Phone Verification</h2>
+
+      <h2 className="mb-6 text-2xl font-semibold text-center">Email and Phone Verification</h2>
       <form onSubmit={handleSubmit} className="grid max-w-4xl grid-cols-1 gap-6 p-6 mx-auto bg-white rounded-lg shadow-xl">
-        
+
         {/* Email Section */}
         <div className="mb-4">
           <label className="block mb-2 font-medium">Email Address</label>
@@ -219,12 +223,29 @@ const OtpVerificationForm = () => {
         </div>
 
         {/* Submit Button */}
-        <button
-          type="submit"
-          className="w-full px-6 py-3 text-white bg-green-500 rounded-lg"
-        >
-          Verify & Submit
-        </button>
+        <div className="flex justify-between mt-6">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+          >
+            Back
+          </button>
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            >
+              Save
+            </button>
+            <button
+              type="submit"
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            >
+              Submit Form
+            </button>
+          </div>
+        </div>
       </form>
     </div>
   );

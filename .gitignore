@@ -25,3 +25,6 @@ public
 *.sln
 *.sw?
 src/firebase.js
+
+.env
+src/firebase.js

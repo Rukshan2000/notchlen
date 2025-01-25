@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebase'; // Import the Firestore database
+import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { useUserContext } from '../context/UserContext';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirectio
-import SideNav from "../components/TopNav"; // Importing the TopNav component
-
+import { useNavigate, useLocation } from 'react-router-dom';
+import SideNav from "../components/TopNav";
+import { fetchBusinessData } from '../utils/dashboardUtils';
+import { getUserDocumentByEmail, getUserRole } from '../firestore';
 
 const CorporateBusinessForm = () => {
-  const { state } = useUserContext();
-  const navigate = useNavigate(); // Initialize useNavigate hook
-  
+  const { state, dispatch } = useUserContext();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const userIdFromAdmin = location.state?.userId;
+
   const [formData, setFormData] = useState({
     companyName: '',
     businessType: '',
@@ -29,30 +33,79 @@ const CorporateBusinessForm = () => {
     authorizedPersonPhone: true
   });
 
+  // Auth state management useEffect
   useEffect(() => {
-    if (state.companyInformation) {
-      setFormData({
-        companyName: state.companyInformation.companyName || '',
-        businessType: state.companyInformation.businessType || '',
-        registrationNumber: state.companyInformation.registrationNumber || '',
-        authorizedPersonName: state.companyInformation.authorizedPersonName || '',
-        authorizedPersonEmail: state.companyInformation.authorizedPersonEmail || '',
-        authorizedPersonPhone: state.companyInformation.authorizedPersonPhone || ''
-      });
-
-      setCheckboxValues({
-        companyName: state.companyInformation.checkCompanyName ?? true,
-        businessType: state.companyInformation.checkBusinessType ?? true,
-        registrationNumber: state.companyInformation.checkRegistrationNumber ?? true,
-        authorizedPersonName: state.companyInformation.checkAuthorizedPersonName ?? true,
-        authorizedPersonEmail: state.companyInformation.checkAuthorizedPersonEmail ?? true,
-        authorizedPersonPhone: state.companyInformation.checkAuthorizedPersonPhone ?? true
+    // Check localStorage for auth data on component mount
+    const savedAuth = localStorage.getItem('authUser');
+    if (savedAuth) {
+      const authData = JSON.parse(savedAuth);
+      dispatch({
+        type: 'SET_USER',
+        payload: authData
       });
     }
-    if (state.user.role === 'user') {
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Auth State Changed:', user);
+
+      if (user) {
+        // Update localStorage when auth state changes
+        const userDoc = await getUserDocumentByEmail(user.email);
+        const role = await getUserRole(userDoc.id);
+
+        const authData = {
+          email: user.email,
+          uid: user.uid,
+          role: role,
+        };
+
+        localStorage.setItem('authUser', JSON.stringify(authData));
+
+        dispatch({
+          type: 'SET_USER',
+          payload: authData
+        });
+      } else {
+        // Clear localStorage when user signs out
+        localStorage.removeItem('authUser');
+        dispatch({ type: 'CLEAR_USER' });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [dispatch]);
+
+  // Business data fetching useEffect
+  useEffect(() => {
+    const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
+    console.log("userId from useEffect", userId);
+
+    if (userId && !formData.email) {
+      fetchBusinessData(userId, dispatch).then(() => {
+        setFormData({
+          companyName: state.businessInformation?.companyName || '',
+          businessType: state.businessInformation?.businessType || '',
+          registrationNumber: state.businessInformation?.registrationNumber || '',
+          authorizedPersonName: state.businessInformation?.authorizedPersonName || '',
+          authorizedPersonEmail: state.businessInformation?.authorizedPersonEmail || '',
+          authorizedPersonPhone: state.businessInformation?.authorizedPersonPhone || ''
+        });
+
+        setCheckboxValues({
+          companyName: state.user?.role === 'admin' ? false : state.businessInformation?.checkCompanyName ?? true,
+          businessType: state.user?.role === 'admin' ? false : state.businessInformation?.checkBusinessType ?? true,
+          registrationNumber: state.user?.role === 'admin' ? false : state.businessInformation?.checkRegistrationNumber ?? true,
+          authorizedPersonName: state.user?.role === 'admin' ? false : state.businessInformation?.checkAuthorizedPersonName ?? true,
+          authorizedPersonEmail: state.user?.role === 'admin' ? false : state.businessInformation?.checkAuthorizedPersonEmail ?? true,
+          authorizedPersonPhone: state.user?.role === 'admin' ? false : state.businessInformation?.checkAuthorizedPersonPhone ?? true
+        });
+      });
+    }
+
+    if (state.user?.role === 'user') {
       setUserRole('user');
     }
-  }, [state.companyInformation]);
+  }, [state.user, userIdFromAdmin, dispatch]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -69,12 +122,12 @@ const CorporateBusinessForm = () => {
     try {
       const dataToAdd = {
         ...formData,
-        checkCompanyName: checkboxValues.companyName,
-        checkBusinessType: checkboxValues.businessType,
-        checkRegistrationNumber: checkboxValues.registrationNumber,
-        checkAuthorizedPersonName: checkboxValues.authorizedPersonName,
-        checkAuthorizedPersonEmail: checkboxValues.authorizedPersonEmail,
-        checkAuthorizedPersonPhone: checkboxValues.authorizedPersonPhone,
+        checkCompanyName: state.user.role === 'user' ? false : checkboxValues.companyName,
+        checkBusinessType: state.user.role === 'user' ? false : checkboxValues.businessType,
+        checkRegistrationNumber: state.user.role === 'user' ? false : checkboxValues.registrationNumber,
+        checkAuthorizedPersonName: state.user.role === 'user' ? false : checkboxValues.authorizedPersonName,
+        checkAuthorizedPersonEmail: state.user.role === 'user' ? false : checkboxValues.authorizedPersonEmail,
+        checkAuthorizedPersonPhone: state.user.role === 'user' ? false : checkboxValues.authorizedPersonPhone,
         status: 'Pending',
         createdAt: serverTimestamp(),
         userId: state.user.uid
@@ -82,51 +135,49 @@ const CorporateBusinessForm = () => {
 
       const dataToUpdate = {
         ...formData,
-        checkCompanyName: checkboxValues.companyName,
-        checkBusinessType: checkboxValues.businessType,
-        checkRegistrationNumber: checkboxValues.registrationNumber,
-        checkAuthorizedPersonName: checkboxValues.authorizedPersonName,
-        checkAuthorizedPersonEmail: checkboxValues.authorizedPersonEmail,
-        checkAuthorizedPersonPhone: checkboxValues.authorizedPersonPhone,
-        status: state.companyInformation.editMode === 'fromUser' ? 'Pending' : 'ReSubmit',
+        checkCompanyName: state.user.role === 'user' ? false : checkboxValues.companyName,
+        checkBusinessType: state.user.role === 'user' ? false : checkboxValues.businessType,
+        checkRegistrationNumber: state.user.role === 'user' ? false : checkboxValues.registrationNumber,
+        checkAuthorizedPersonName: state.user.role === 'user' ? false : checkboxValues.authorizedPersonName,
+        checkAuthorizedPersonEmail: state.user.role === 'user' ? false : checkboxValues.authorizedPersonEmail,
+        checkAuthorizedPersonPhone: state.user.role === 'user' ? false : checkboxValues.authorizedPersonPhone,
+        status: state.user.role === 'admin' ? 'Resubmit' : 'Pending',
         createdAt: serverTimestamp()
       };
 
-      const contactsRef = collection(db, 'contacts');
-      const q = query(contactsRef, where('userId', '==', state.companyInformation.userId));
+      const businessRef = collection(db, 'business');
+      const q = query(businessRef, where('userId', '==', state.companyInformation.userId));
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-        const docRef = doc(db, 'contacts', querySnapshot.docs[0].id);
+        const docRef = doc(db, 'business', querySnapshot.docs[0].id);
         await updateDoc(docRef, dataToUpdate);
-        alert('Contact updated successfully!');
+        alert('Business information updated successfully!');
       } else {
-        await addDoc(collection(db, 'contacts'), dataToAdd);
-        alert('Contact saved successfully!');
+        await addDoc(businessRef, dataToAdd);
+        alert('Business information saved successfully!');
       }
 
-      // Reset form data after submission
-      setFormData({
-        companyName: '',
-        businessType: '',
-        registrationNumber: '',
-        authorizedPersonName: '',
-        authorizedPersonEmail: '',
-        authorizedPersonPhone: ''
-      });
-
-      // Redirect user to form2 after successful submission
-      navigate('/section-three'); // Replace '/form2' with the correct path for form2
+      navigate('/section-three', { state: { userId: userIdFromAdmin } });
 
     } catch (error) {
       console.error('Error handling document: ', error);
-      alert('Error saving contact. Please try again.');
+      alert('Error saving business information. Please try again.');
     }
-};
+  };
+
+  const handleNext = () => {
+    navigate('/section-three', { state: { userId: userIdFromAdmin } });
+
+  };
+
+  const handleBack = () => {
+    navigate('/section-one');
+  };
 
   return (
     <div className="p-6 mx-auto mt-12 bg-gray-100 rounded-lg shadow-lg max-w-8xl">
-      <SideNav /> 
+      <SideNav />
       <div className="flex items-center justify-between mb-6 ">
         <div className="flex items-center">
           <div className="flex items-center justify-center w-8 h-8 text-white bg-green-500 rounded-full">1</div>
@@ -165,7 +216,7 @@ const CorporateBusinessForm = () => {
       <form onSubmit={handleSubmit} className="grid max-w-4xl grid-cols-1 gap-6 p-6 mx-auto bg-white rounded-lg shadow-xl">
         <h2 className="col-span-1 mb-4 text-2xl font-semibold text-center">Business Information</h2>
         <div className="grid grid-cols-2 gap-6 p-6">
-          
+
           {/* Company Name */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
@@ -276,14 +327,18 @@ const CorporateBusinessForm = () => {
               />
               <label className="block font-medium">Authorized Person Email</label>
             </div>
-            <input
-              type="email"
-              name="authorizedPersonEmail"
-              value={formData.authorizedPersonEmail}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
-              disabled={!checkboxValues.authorizedPersonEmail}
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <input
+                  type="email"
+                  name="authorizedPersonEmail"
+                  value={formData.authorizedPersonEmail}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                  disabled={!checkboxValues.authorizedPersonEmail}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Authorized Person Phone */}
@@ -310,12 +365,30 @@ const CorporateBusinessForm = () => {
           </div>
         </div>
 
-        <button
-          type="submit"
-          className="w-1/3 py-3 ml-auto text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700"
+        <div className="flex justify-between mt-6">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
           >
-        Save and Next
-        </button>
+            Back
+          </button>
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </form>
     </div>
   );

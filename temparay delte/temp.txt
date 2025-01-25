@@ -1,0 +1,69 @@
+ 
+       
+       ///original
+       
+       const dataToAdd = {
+        ...formData,
+        checkEmail: state.user.role === 'user' ? false : checkboxValues.email,
+        checkRegistrationPlan: state.user.role === 'user' ? false : checkboxValues.registrationPlan,
+        checkContactPersonTitle: state.user.role === 'user' ? false : checkboxValues.contactPersonTitle,
+        checkContactPersonName: state.user.role === 'user' ? false : checkboxValues.contactPersonName,
+        checkContactPersonEmail: state.user.role === 'user' ? false : checkboxValues.contactPersonEmail,
+        checkContactPersonPhone: state.user.role === 'user' ? false : checkboxValues.contactPersonPhone,
+        status: 'Pending',
+        createdAt: serverTimestamp(),
+        userId: state.user.uid,
+        emailVerified: emailVerification.isVerified
+      };
+ 
+      const dataToUpdate = {
+        ...formData,
+        checkEmail: state.user.role === 'user' ? false : checkboxValues.email,
+        checkRegistrationPlan: state.user.role === 'user' ? false : checkboxValues.registrationPlan,
+        checkContactPersonTitle: state.user.role === 'user' ? false : checkboxValues.contactPersonTitle,
+        checkContactPersonName: state.user.role === 'user' ? false : checkboxValues.contactPersonName,
+        checkContactPersonEmail: state.user.role === 'user' ? false : checkboxValues.contactPersonEmail,
+        checkContactPersonPhone: state.user.role === 'user' ? false : checkboxValues.contactPersonPhone,
+        status: state.user.role === 'admin' ? 'Resubmit' : 'Pending',
+        createdAt: serverTimestamp(),
+        emailVerified: emailVerification.isVerified
+      };
+
+
+      //temparary code
+      
+       const dataToAdd = {
+        ...formData,
+        checkEmail: true,
+        checkRegistrationPlan: true,
+        checkContactPersonTitle: true,
+        checkContactPersonName: true,
+        checkContactPersonEmail: true,
+        checkContactPersonPhone: true,
+        status: 'Pending',
+        createdAt: serverTimestamp(),
+        userId: state.user.uid,
+        emailVerified: emailVerification.isVerified,
+        phoneVerified: phoneVerification.isVerified
+      };
+
+      const dataToUpdate = {
+        ...formData,
+        checkEmail: true,
+        checkRegistrationPlan: true,
+        checkContactPersonTitle: true,
+        checkContactPersonName: true,
+        checkContactPersonEmail: true,
+        checkContactPersonPhone: true,
+        status: state.user.role === 'admin' ? 'Resubmit' : 'Pending',
+        createdAt: serverTimestamp(),
+        emailVerified: emailVerification.isVerified,
+        phoneVerified: phoneVerification.isVerified
+      };
+
+
+
+
+
+      similar to @sectionOne.jsx  and @sectionTwo.jsx implement @sectionThree.jsx . add checkboxes to all fields. multiple directors should be able to save in fire base . update @UserContext.jsx . implement firebase storage for file upload. 
+      

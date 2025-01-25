@@ -11,15 +11,19 @@ import SectionSix from './form/sectionSix'
 import Login from './pages/LoginPage';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/UserDashboard';
-import SideNav from './components/TopNav';  // Import the SideNav component
+import SideNav from './components/SideNav';  // Import the SideNav component
 import AdminDashboard from './pages/AdminDashboard';
 import { UserProvider } from './context/UserContext';
+import PaymentSuccess from './pages/PaymentSuccess';
+import EmailVerificationCallback from './pages/EmailVerificationCallback';
+
 
 const App = () => {
   return (
     <UserProvider>
       <BrowserRouter>
         <div className="flex h-screen">
+          <SideNav />  {/* Render the SideNav component */}
 
           <div className="flex-grow p-4">
             <Routes>
@@ -33,7 +37,9 @@ const App = () => {
               <Route path="/section-five" element={<SectionFive />} />
               <Route path='/section-six' element={<SectionSix />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/admindashboard" element={<AdminDashboard />} />
+              <Route path="/adminDashboard" element={<AdminDashboard />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/verify-email" element={<EmailVerificationCallback />} />
 
               {/* You can add more routes here */}
             </Routes>
