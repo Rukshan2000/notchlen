@@ -1,43 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { db, storage } from '../firebase'; // Import Firebase Storage
 import { collection, addDoc, serverTimestamp, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // Import Firebase storage methods
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'; // Import Firebase storage methods
 import { useUserContext } from '../context/UserContext';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
 import SideNav from "../components/TopNav"; // Importing the TopNav component
+import { getStorage } from 'firebase/storage';
+import { fetchPaymentData, savePaymentData } from '../utils/dashboardUtils';
 
 const CorporateBusinessForm = () => {
-  const { state } = useUserContext();
+  const { state, dispatch } = useUserContext();
   const navigate = useNavigate(); // Initialize useNavigate hook
-  
-  const [formData, setFormData] = useState({
 
-    paymentSlip: null // New field for payment slip
+  const [formData, setFormData] = useState({
+    paymentSlip: null,
+    paymentSlipPreview: null
   });
 
   const [userRole, setUserRole] = useState('admin');
   const [checkboxValues, setCheckboxValues] = useState({
-    email: true,
-
-    contactPersonPhone: true
+    paymentSlip: true
   });
 
-  useEffect(() => {
-    if (state.companyInformation) {
-      setFormData({
+  const [userIdFromAdmin, setUserIdFromAdmin] = useState(null);
 
-        paymentSlip: null // Initialize the payment slip
+  const [previewUrl, setPreviewUrl] = useState(null); // State for preview modal
+
+  useEffect(() => {
+    if (state.paymentInformation.userId) {
+      setFormData({
+        paymentSlip: null, // Initialize the payment slip
+        paymentSlipPreview: null // Initialize the payment slip preview
       });
 
       setCheckboxValues({
-
-        contactPersonPhone: state.companyInformation.checkContactPersonPhone ?? true
+        paymentSlip: true
       });
     }
     if (state.user.role === 'user') {
       setUserRole('user');
     }
-  }, [state.companyInformation]);
+    if (state.user?.role === 'admin') {
+      setUserIdFromAdmin(state.user.uid);
+    }
+  }, [state.companyInformation, state.user.role]);
+
+  useEffect(() => {
+    const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
+    if (userId) {
+      fetchPaymentData(userId, dispatch).then(paymentData => {
+        if (paymentData?.paymentSlip) {
+          setFormData({
+            paymentSlip: paymentData.paymentSlip,
+            paymentSlipPreview: paymentData.paymentSlip.url
+          });
+        }
+      });
+    }
+  }, [state.user, userIdFromAdmin, dispatch]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -46,7 +66,14 @@ const CorporateBusinessForm = () => {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setFormData({ ...formData, paymentSlip: file });
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      setFormData({
+        ...formData,
+        paymentSlip: file,
+        paymentSlipPreview: previewUrl
+      });
+    }
   };
 
   const handleCheckboxChange = (e) => {
@@ -54,61 +81,96 @@ const CorporateBusinessForm = () => {
     setCheckboxValues({ ...checkboxValues, [name]: checked });
   };
 
+  const uploadFile = async (file, userId) => {
+    if (!file) return null;
+
+    const storage = getStorage();
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `payments/${userId}/payment_slip.${fileExtension}`;
+    const storageRef = ref(storage, fileName);
+
+    try {
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      return { url: downloadURL, path: fileName };
+    } catch (error) {
+      console.error('Error uploading payment slip:', error);
+      throw error;
+    }
+  };
+
+  const deleteOldFile = async (filePath) => {
+    if (!filePath) return;
+
+    const storage = getStorage();
+    const fileRef = ref(storage, filePath);
+    try {
+      await deleteObject(fileRef);
+    } catch (error) {
+      console.error('Error deleting old file:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Upload payment slip to Firebase Storage
-      let paymentSlipUrl = '';
-      if (formData.paymentSlip) {
-        const storageRef = ref(storage, `paymentSlips/${formData.paymentSlip.name}`);
-        await uploadBytes(storageRef, formData.paymentSlip);
-        paymentSlipUrl = await getDownloadURL(storageRef);
+      const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
+
+      // Upload payment slip
+      const paymentSlipFile = formData.paymentSlip instanceof File ? formData.paymentSlip : null;
+      const existingPayment = state.paymentInformation || {};
+
+      // Upload new file or keep existing URL
+      const paymentSlip = paymentSlipFile
+        ? await uploadFile(paymentSlipFile, userId)
+        : existingPayment.paymentSlip || null;
+
+      // Delete old file if new one is uploaded
+      if (paymentSlipFile && existingPayment.paymentSlip) {
+        await deleteOldFile(existingPayment.paymentSlip.path);
       }
 
-      const dataToAdd = {
-        ...formData,
-
-        paymentSlipUrl, // Save the URL of the payment slip
-        status: 'Pending',
-        createdAt: serverTimestamp(),
-        userId: state.user.uid
+      const formDataToSave = {
+        paymentSlip,
+        status: state.user?.role === 'admin' ? 'Resubmit' : 'Pending',
+        userId: userId,
       };
 
-      const contactsRef = collection(db, 'contacts');
-      const q = query(contactsRef, where('userId', '==', state.companyInformation.userId));
-      const querySnapshot = await getDocs(q);
+      const result = await savePaymentData(formDataToSave, userId);
 
-      if (!querySnapshot.empty) {
-        const docRef = doc(db, 'contacts', querySnapshot.docs[0].id);
-        await updateDoc(docRef, dataToAdd);
-        alert('Contact updated successfully!');
+      if (result.success) {
+        alert(result.message);
+        // navigate('/section-six', { state: { userId: userIdFromAdmin } });
       } else {
-        await addDoc(collection(db, 'contacts'), dataToAdd);
-        alert('Contact saved successfully!');
+        alert('Error saving payment information. Please try again.');
       }
-
-      // Reset form data after submission
-      setFormData({
-
-        paymentSlip: null
-      });
-
-      // Redirect user to the next section after successful submission
-      navigate('/section-six'); // Replace '/section-two' with the correct path
 
     } catch (error) {
       console.error('Error handling document: ', error);
-      alert('Error saving contact. Please try again.');
+      alert('Error saving payment information. Please try again.');
     }
+  };
+
+  // Add handleBack function
+  const handleBack = () => {
+    navigate('/section-four', { state: { userId: userIdFromAdmin } });
+  };
+
+  const handlePreview = (url) => {
+    setPreviewUrl(url);
+  };
+
+  const closePreview = () => {
+    setPreviewUrl(null);
   };
 
   return (
     <div className="p-6 mx-auto mt-12 bg-gray-100 rounded-lg shadow-lg max-w-8xl">
-      <SideNav /> 
+      <SideNav />
       <div className="flex items-center justify-between mb-6 ">
         <div className="flex items-center">
           <div className="flex items-center justify-center w-8 h-8 text-white bg-green-500 rounded-full">1</div>
-          <span className="ml-2 font-medium text-green-500">Contact Information</span>
+          <span className="ml-2 font-medium text-green-500">Payment Information</span>
         </div>
         <div className="w-full h-1 mx-2 bg-gray-300"></div>
         <div className="flex items-center">
@@ -122,14 +184,14 @@ const CorporateBusinessForm = () => {
           <span className="ml-2 font-medium text-green-500">Director Information</span>
         </div>
         <div className="w-full h-1 mx-2 bg-gray-300"></div>
-      
+
         <div className="flex items-center">
           <div className="flex items-center justify-center w-8 h-8 text-white bg-green-500 rounded-full">3</div>
           <span className="ml-2 font-medium text-green-500">Shareholder Information</span>
         </div>
         <div className="w-full h-1 mx-2 bg-gray-300"></div>
         <div className="flex items-center">
-          <div className="flex items-center justify-center w-8 h-8 text-white bg-blue-500 rounded-full">5</div>
+          <div className="flex items-center justify-center w-8 h-8 text-blue-500 rounded-full">5</div>
           <span className="ml-2 font-medium text-blue-500">Payment Verification</span>
         </div>
         <div className="w-full h-1 mx-2 bg-gray-300"></div>
@@ -149,24 +211,71 @@ const CorporateBusinessForm = () => {
           {/* Payment Slip Upload */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
+              <input
+                type="checkbox"
+                name="paymentSlip"
+                className="mr-2"
+                disabled={userRole === 'user'}
+                checked={checkboxValues.paymentSlip}
+                onChange={handleCheckboxChange}
+              />
               <label className="block font-medium">Upload Payment Slip</label>
             </div>
-            <input
-              type="file"
-              name="paymentSlip"
-              onChange={handleFileChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
-            />
+            <div className="space-y-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                disabled={!checkboxValues.paymentSlip}
+              />
+              {(formData.paymentSlipPreview || (formData.paymentSlip && formData.paymentSlip.url)) && (
+                <div className="mt-2" onClick={() => handlePreview(formData.paymentSlipPreview || formData.paymentSlip.url)}>
+                  <img
+                    src={formData.paymentSlipPreview || formData.paymentSlip.url}
+                    alt="Payment Slip Preview"
+                    className="w-40 h-auto object-contain border rounded-lg cursor-pointer"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        <button
-          type="submit"
-          className="w-1/3 py-3 ml-auto text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700"
-        >
-          Save and Next
-        </button>
+        <div className="flex justify-between mt-6">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="px-4 py-2 text-white bg-gray-500 hover:bg-gray-600 rounded"
+          >
+            Back
+          </button>
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              className="px-4 py-2 text-white bg-green-500 hover:bg-green-600 rounded"
+            >
+              Save
+            </button>
+            {/* <button
+              type="button"
+              onClick={handleSubmit}
+              className="px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
+            >
+              Next
+            </button> */}
+          </div>
+        </div>
       </form>
+
+      {/* Modal for preview */}
+      {previewUrl && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50" onClick={closePreview}>
+          <div className="bg-white p-4 rounded">
+            <img src={previewUrl} alt="Preview" className="max-w-full max-h-screen" />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -38,6 +38,12 @@ const CorporateBusinessForm = () => {
     contactPersonPhone: true
   });
 
+  const [emailVerification, setEmailVerification] = useState({
+    isVerified: false,
+    verificationSent: false,
+    error: ''
+  });
+
   useEffect(() => {
     // Check localStorage for auth data on component mount
     const savedAuth = localStorage.getItem('authUser');
@@ -73,6 +79,33 @@ const CorporateBusinessForm = () => {
         // Clear localStorage when user signs out
         localStorage.removeItem('authUser');
         dispatch({ type: 'CLEAR_USER' });
+      }
+
+      if (user?.emailVerified && user.email === formData.contactPersonEmail) {
+        console.log('Email verified for:', user.email);
+        setEmailVerification(prev => ({
+          ...prev,
+          isVerified: true,
+          verificationSent: false,
+          error: ''
+        }));
+
+        // Update Firestore
+        try {
+          const contactsRef = collection(db, 'contacts');
+          const q = query(contactsRef, where('userId', '==', state.companyInformation.userId));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            const docRef = doc(db, 'contacts', querySnapshot.docs[0].id);
+            await updateDoc(docRef, {
+              emailVerified: true,
+              contactPersonEmail: formData.contactPersonEmail
+            });
+          }
+        } catch (error) {
+          console.error('Error updating verification status:', error);
+        }
       }
     });
 
@@ -111,6 +144,44 @@ const CorporateBusinessForm = () => {
     }
   }, [state.user, userIdFromAdmin, dispatch]);
 
+  const checkVerificationStatus = async () => {
+    try {
+      // Get current auth user
+      const currentUser = auth.currentUser;
+      console.log('Current User:', currentUser);
+
+      if (currentUser) {
+        // Force refresh to get latest verification status
+        await currentUser.reload();
+        console.log('Email Verified Status:', currentUser.emailVerified);
+
+        if (currentUser.emailVerified && currentUser.email === formData.contactPersonEmail) {
+          setEmailVerification(prev => ({
+            ...prev,
+            isVerified: true,
+            verificationSent: false,
+            error: ''
+          }));
+
+          // Update Firestore
+          const contactsRef = collection(db, 'contacts');
+          const q = query(contactsRef, where('userId', '==', state.companyInformation.userId));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            const docRef = doc(db, 'contacts', querySnapshot.docs[0].id);
+            await updateDoc(docRef, {
+              emailVerified: true,
+              contactPersonEmail: formData.contactPersonEmail
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking verification status:', error);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -124,57 +195,115 @@ const CorporateBusinessForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    try {
-      const dataToAdd = {
-        ...formData,
-        checkEmail: state.user.role === 'user' ? false : checkboxValues.email,
-        checkRegistrationPlan: state.user.role === 'user' ? false : checkboxValues.registrationPlan,
-        checkContactPersonTitle: state.user.role === 'user' ? false : checkboxValues.contactPersonTitle,
-        checkContactPersonName: state.user.role === 'user' ? false : checkboxValues.contactPersonName,
-        checkContactPersonEmail: state.user.role === 'user' ? false : checkboxValues.contactPersonEmail,
-        checkContactPersonPhone: state.user.role === 'user' ? false : checkboxValues.contactPersonPhone,
-        status: 'Pending',
-        createdAt: serverTimestamp(),
-        userId: state.user.uid
-      };
+    checkVerificationStatus();
 
-      const dataToUpdate = {
-        ...formData,
-        checkEmail: state.user.role === 'user' ? false : checkboxValues.email,
-        checkRegistrationPlan: state.user.role === 'user' ? false : checkboxValues.registrationPlan,
-        checkContactPersonTitle: state.user.role === 'user' ? false : checkboxValues.contactPersonTitle,
-        checkContactPersonName: state.user.role === 'user' ? false : checkboxValues.contactPersonName,
-        checkContactPersonEmail: state.user.role === 'user' ? false : checkboxValues.contactPersonEmail,
-        checkContactPersonPhone: state.user.role === 'user' ? false : checkboxValues.contactPersonPhone,
-        status: state.user.role === 'admin' ? 'Resubmit' : 'Pending',
-        createdAt: serverTimestamp()
-      };
+    console.log('Verification Status:', {
+      checkboxEnabled: checkboxValues.contactPersonEmail,
+      isVerified: emailVerification.isVerified,
+      email: formData.contactPersonEmail
+    });
 
-      const contactsRef = collection(db, 'contacts');
-      const q = query(contactsRef, where('userId', '==', state.companyInformation.userId));
-      const querySnapshot = await getDocs(q);
+    // Check if email verification is required and completed
+    if (checkboxValues.contactPersonEmail && !emailVerification.isVerified) {
+      alert('Please verify the contact person email before submitting the form.');
+      // Scroll to the email input field
+      const emailInput = document.querySelector('input[name="contactPersonEmail"]');
+      emailInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    } else {
+      try {
+        const dataToAdd = {
+          ...formData,
+          checkEmail: state.user.role === 'user' ? false : checkboxValues.email,
+          checkRegistrationPlan: state.user.role === 'user' ? false : checkboxValues.registrationPlan,
+          checkContactPersonTitle: state.user.role === 'user' ? false : checkboxValues.contactPersonTitle,
+          checkContactPersonName: state.user.role === 'user' ? false : checkboxValues.contactPersonName,
+          checkContactPersonEmail: state.user.role === 'user' ? false : checkboxValues.contactPersonEmail,
+          checkContactPersonPhone: state.user.role === 'user' ? false : checkboxValues.contactPersonPhone,
+          status: 'Pending',
+          createdAt: serverTimestamp(),
+          userId: state.user.uid,
+          emailVerified: emailVerification.isVerified
+        };
 
-      if (!querySnapshot.empty) {
-        const docRef = doc(db, 'contacts', querySnapshot.docs[0].id);
-        await updateDoc(docRef, dataToUpdate);
-        alert('Contact updated successfully!');
-      } else {
-        await addDoc(collection(db, 'contacts'), dataToAdd);
-        alert('Contact saved successfully!');
+        const dataToUpdate = {
+          ...formData,
+          checkEmail: state.user.role === 'user' ? false : checkboxValues.email,
+          checkRegistrationPlan: state.user.role === 'user' ? false : checkboxValues.registrationPlan,
+          checkContactPersonTitle: state.user.role === 'user' ? false : checkboxValues.contactPersonTitle,
+          checkContactPersonName: state.user.role === 'user' ? false : checkboxValues.contactPersonName,
+          checkContactPersonEmail: state.user.role === 'user' ? false : checkboxValues.contactPersonEmail,
+          checkContactPersonPhone: state.user.role === 'user' ? false : checkboxValues.contactPersonPhone,
+          status: state.user.role === 'admin' ? 'Resubmit' : 'Pending',
+          createdAt: serverTimestamp(),
+          emailVerified: emailVerification.isVerified
+        };
+
+        const contactsRef = collection(db, 'contacts');
+        const q = query(contactsRef, where('userId', '==', state.companyInformation.userId));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const docRef = doc(db, 'contacts', querySnapshot.docs[0].id);
+          await updateDoc(docRef, dataToUpdate);
+          alert('Contact updated successfully!');
+        } else {
+          await addDoc(collection(db, 'contacts'), dataToAdd);
+          alert('Contact saved successfully!');
+        }
+
+        // Redirect user to form2 after successful submission
+        navigate('/section-two', { state: { userId: userIdFromAdmin } });
+
+      } catch (error) {
+        console.error('Error handling document: ', error);
+        alert('Error saving contact. Please try again.');
       }
-
-      // Redirect user to form2 after successful submission
-      navigate('/section-two', { state: { userId: userIdFromAdmin } });
-
-    } catch (error) {
-      console.error('Error handling document: ', error);
-      alert('Error saving contact. Please try again.');
-    }
+    };
   };
 
   const handleNext = () => {
     navigate('/section-two', { state: { userId: userIdFromAdmin } });
 
+  };
+
+  const handleEmailVerification = async () => {
+    try {
+      setEmailVerification(prev => ({ ...prev, error: '', verificationSent: true }));
+
+      // Initialize a new Firebase app instance for verification
+      const verificationAuth = getAuth();
+      await setPersistence(verificationAuth, browserSessionPersistence);
+
+      const tempPassword = Math.random().toString(36).slice(-8);
+
+      // Disable auth state listener temporarily
+      const unsubscribe = onAuthStateChanged(auth, () => { });
+
+      try {
+        // Use the verification auth instance
+        const userCredential = await createUserWithEmailAndPassword(verificationAuth, formData.contactPersonEmail, tempPassword);
+        await sendEmailVerification(userCredential.user);
+        await signOut(verificationAuth);
+
+        setEmailVerification(prev => ({
+          ...prev,
+          verificationSent: true,
+          message: 'Verification email sent! Please check your email.'
+        }));
+      } finally {
+        // Re-enable auth state listener
+        unsubscribe();
+      }
+
+    } catch (error) {
+      console.error('Error in email verification:', error);
+      setEmailVerification(prev => ({
+        ...prev,
+        error: 'Error sending verification email. Please try again.',
+        verificationSent: false
+      }));
+    }
   };
 
   return (
@@ -336,14 +465,44 @@ const CorporateBusinessForm = () => {
               />
               <label className="block font-medium">Contact Person's Email Address</label>
             </div>
-            <input
-              type="email"
-              name="contactPersonEmail"
-              value={formData.contactPersonEmail}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
-              disabled={!checkboxValues.contactPersonEmail}
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <input
+                  type="email"
+                  name="contactPersonEmail"
+                  value={formData.contactPersonEmail}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                  disabled={!checkboxValues.contactPersonEmail}
+                />
+              </div>
+              {checkboxValues.contactPersonEmail && formData.contactPersonEmail && !emailVerification.isVerified && (
+                <button
+                  type="button"
+                  onClick={handleEmailVerification}
+                  className="min-w-[120px] h-12 px-4 text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
+                  disabled={emailVerification.verificationSent}
+                >
+                  {emailVerification.verificationSent ? 'Sent' : 'Verify Email'}
+                </button>
+              )}
+              {emailVerification.isVerified && (
+                <div className="flex items-center text-green-600">
+                  <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Verified
+                </div>
+              )}
+            </div>
+            {emailVerification.error && (
+              <p className="mt-2 text-sm text-red-600">{emailVerification.error}</p>
+            )}
+            {emailVerification.verificationSent && !emailVerification.isVerified && (
+              <p className="mt-2 text-sm text-green-600">
+                Please check your email for verification link. Click the link to verify your email address.
+              </p>
+            )}
           </div>
 
           {/* Contact Person Phone */}

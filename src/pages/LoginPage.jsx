@@ -22,6 +22,13 @@ const Login = () => {
       const userDoc = await getUserDocumentByEmail(email);
       const role = await getUserRole(userDoc.id);
 
+      // Save auth data to localStorage
+      localStorage.setItem('authUser', JSON.stringify({
+        email: user.email,
+        uid: user.uid,
+        role: role,
+      }));
+
       dispatch({
         type: 'SET_USER',
         payload: {
@@ -32,7 +39,7 @@ const Login = () => {
       });
 
       if (role === 'admin') {
-        navigate('/admin-dashboard');
+        navigate('/admindashboard');
       } else {
         navigate('/dashboard');
       }
