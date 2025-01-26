@@ -103,4 +103,92 @@ export const savePaymentData = async (paymentData, userId) => {
         console.error('Error saving payment data:', error);
         return { success: false, message: error.message };
     }
+};
+
+export const fetchDirectorData = async (userId, dispatch) => {
+    if (!userId) return;
+
+    try {
+        const directorsRef = collection(db, 'directors');
+        const q = query(directorsRef, where('userId', '==', userId));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            const directorData = querySnapshot.docs[0].data();
+            const newCheckboxValues = directorData.directorCheckboxes || directorData.directors.map(director => ({
+                title: false,
+                fullName: false,
+                dob: false,
+                province: false,
+                district: false,
+                division: false,
+                address1: false,
+                address2: false,
+                postCode: false,
+                phone: false,
+                mobile: false,
+                email: false,
+                occupation: false,
+                nicFront: false,
+                nicBack: false,
+                signature: false,
+            }));
+
+            dispatch({
+                type: 'SET_DIRECTOR_INFORMATION',
+                payload: {
+                    directors: directorData.directors,
+                    directorCheckboxes: newCheckboxValues,
+                    status: directorData.status,
+                    userId: userId
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching director data:', error);
+    }
+};
+
+export const fetchShareholderData = async (userId, dispatch) => {
+    if (!userId) return;
+
+    try {
+        const shareholdersRef = collection(db, 'shareholders');
+        const q = query(shareholdersRef, where('userId', '==', userId));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            const shareholderData = querySnapshot.docs[0].data();
+            const newCheckboxValues = shareholderData.shareholderCheckboxes || shareholderData.shareholders.map(shareholder => ({
+                title: false,
+                fullName: false,
+                dob: false,
+                province: false,
+                district: false,
+                division: false,
+                address1: false,
+                address2: false,
+                postCode: false,
+                phone: false,
+                mobile: false,
+                email: false,
+                shares: false,
+                nicFront: false,
+                nicBack: false,
+                signature: false,
+            }));
+
+            dispatch({
+                type: 'SET_SHAREHOLDER_INFORMATION',
+                payload: {
+                    shareholders: shareholderData.shareholders,
+                    shareholderCheckboxes: newCheckboxValues,
+                    status: shareholderData.status,
+                    userId: userId
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching shareholder data:', error);
+    }
 }; 

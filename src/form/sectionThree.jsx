@@ -5,7 +5,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'fire
 import { useUserContext } from '../context/UserContext';
 import { useNavigate, useLocation } from 'react-router-dom'; // Import useNavigate and useLocation for redirection
 import SideNav from "../components/TopNav"; // Importing the TopNav component
-import { fetchBusinessData } from '../utils/dashboardUtils';
+import { fetchBusinessData, fetchDirectorData } from '../utils/dashboardUtils';
 
 const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
@@ -14,24 +14,7 @@ const CorporateBusinessForm = () => {
   const userIdFromAdmin = location.state?.userId;
   const [userRole, setUserRole] = useState('admin');
 
-  const [directors, setDirectors] = useState([{
-    title: '',
-    fullName: '',
-    dob: '',
-    province: '',
-    district: '',
-    division: '',
-    address1: '',
-    address2: '',
-    postCode: '',
-    phone: '',
-    mobile: '',
-    email: '',
-    occupation: '',
-    nicFront: null,
-    nicBack: null,
-    signature: null,
-  }]);
+  const [directors, setDirectors] = useState([]);
 
   const [checkboxValues, setCheckboxValues] = useState([{
     title: true,
@@ -56,58 +39,15 @@ const CorporateBusinessForm = () => {
 
   // Fetch existing director data
   useEffect(() => {
-    const fetchDirectorData = async () => {
-      try {
-        const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
-        if (!userId) return;
-
-        const directorsRef = collection(db, 'directors');
-        const q = query(directorsRef, where('userId', '==', userId));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          const directorData = querySnapshot.docs[0].data();
-          setDirectors(directorData.directors || []);
-
-          // Set checkbox values based on existing data or defaults
-          const newCheckboxValues = directorData.directorCheckboxes || directorData.directors.map(director => ({
-            title: state.user?.role === 'admin' ? false : true,
-            fullName: state.user?.role === 'admin' ? false : true,
-            dob: state.user?.role === 'admin' ? false : true,
-            province: state.user?.role === 'admin' ? false : true,
-            district: state.user?.role === 'admin' ? false : true,
-            division: state.user?.role === 'admin' ? false : true,
-            address1: state.user?.role === 'admin' ? false : true,
-            address2: state.user?.role === 'admin' ? false : true,
-            postCode: state.user?.role === 'admin' ? false : true,
-            phone: state.user?.role === 'admin' ? false : true,
-            mobile: state.user?.role === 'admin' ? false : true,
-            email: state.user?.role === 'admin' ? false : true,
-            occupation: state.user?.role === 'admin' ? false : true,
-            nicFront: state.user?.role === 'admin' ? false : true,
-            nicBack: state.user?.role === 'admin' ? false : true,
-            signature: state.user?.role === 'admin' ? false : true,
-          }));
-          setCheckboxValues(newCheckboxValues);
-
-          // Update context
-          dispatch({
-            type: 'SET_DIRECTOR_INFORMATION',
-            payload: {
-              directors: directorData.directors,
-              directorCheckboxes: newCheckboxValues,
-              status: directorData.status,
-              userId: userId
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching director data:', error);
-      }
-    };
-
-    fetchDirectorData();
+    const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
+    fetchDirectorData(userId, dispatch);
   }, [state.user, userIdFromAdmin, dispatch]);
+
+  useEffect(() => {
+    if (state.directorInformation) {
+      setDirectors(state.directorInformation.directors || []);
+    }
+  }, [state.directorInformation]);
 
   // Set user role
   useEffect(() => {

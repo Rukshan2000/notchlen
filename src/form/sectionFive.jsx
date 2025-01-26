@@ -47,16 +47,14 @@ const CorporateBusinessForm = () => {
 
   useEffect(() => {
     const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
-    if (userId) {
-      fetchPaymentData(userId, dispatch).then(paymentData => {
-        if (paymentData?.paymentSlip) {
-          setFormData({
-            paymentSlip: paymentData.paymentSlip,
-            paymentSlipPreview: paymentData.paymentSlip.url
-          });
-        }
-      });
-    }
+    fetchPaymentData(userId, dispatch).then(paymentData => {
+      if (paymentData?.paymentSlip) {
+        setFormData({
+          paymentSlip: paymentData.paymentSlip,
+          paymentSlipPreview: paymentData.paymentSlip.url
+        });
+      }
+    });
   }, [state.user, userIdFromAdmin, dispatch]);
 
   const handleChange = (e) => {
@@ -140,7 +138,7 @@ const CorporateBusinessForm = () => {
 
       if (result.success) {
         alert(result.message);
-        // navigate('/section-six', { state: { userId: userIdFromAdmin } });
+        navigate('/section-six', { state: { userId: userIdFromAdmin } });
       } else {
         alert('Error saving payment information. Please try again.');
       }
@@ -162,6 +160,10 @@ const CorporateBusinessForm = () => {
 
   const closePreview = () => {
     setPreviewUrl(null);
+  };
+
+  const handleNext = () => {
+    navigate('/section-six', { state: { userId: userIdFromAdmin } });
   };
 
   return (
@@ -257,13 +259,13 @@ const CorporateBusinessForm = () => {
             >
               Save
             </button>
-            {/* <button
+            <button
               type="button"
-              onClick={handleSubmit}
+              onClick={handleNext}
               className="px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
             >
               Next
-            </button> */}
+            </button>
           </div>
         </div>
       </form>
