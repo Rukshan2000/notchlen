@@ -20,7 +20,7 @@ const initialState = {
     checkName: true,
     checkEmail: true,
     checkPhone: true,
-    status: 'Form not submitted',
+    status: '',
     userId: null,
     userIdFromAdmin: null,
   },
@@ -37,19 +37,19 @@ const initialState = {
     checkAuthorizedPersonName: true,
     checkAuthorizedPersonEmail: true,
     checkAuthorizedPersonPhone: true,
-    status: 'Form not submitted',
+    status: '',
     userId: null,
   },
   directorInformation: {
     directors: [],
     directorCheckboxes: [],
-    status: 'Form not submitted',
+    status: '',
     userId: null,
   },
   shareHolderInformation: {
     shareholders: [],
     shareholderCheckboxes: [],
-    status: 'Form not submitted',
+    status: '',
     userId: null,
   },
   paymentInformation: {
@@ -57,7 +57,7 @@ const initialState = {
       url: null,
       path: null
     },
-    status: 'Form not submitted',
+    status: '',
     userId: null,
     createdAt: null
   },

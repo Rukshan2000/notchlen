@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useUserContext } from "../context/UserContext";
 import { useNavigate } from "react-router-dom";
 import { getFormDocumentIdByUserid } from "../firestore";
-import { fetchContactData } from "../utils/dashboardUtils";
+import { fetchContactData, fetchBusinessData, fetchDirectorData, fetchShareholderData, fetchPaymentData } from "../utils/dashboardUtils";
 
 const Dashboard = () => {
   const { state, dispatch } = useUserContext();
@@ -17,14 +17,21 @@ const Dashboard = () => {
   // };
 
   useEffect(() => {
-    if (state.user?.uid) {
-      try {
-        fetchContactData(state.user.uid, dispatch);
-        fetchBusinessData(state.user.uid, dispatch);
-      } catch (error) {
-        console.log("user not logged in", error);
+    const fetchData = async () => {
+      if (state.user?.uid) {
+        try {
+          await fetchContactData(state.user.uid, dispatch);
+          await fetchBusinessData(state.user.uid, dispatch);
+          await fetchDirectorData(state.user.uid, dispatch);
+          await fetchShareholderData(state.user.uid, dispatch);
+          await fetchPaymentData(state.user.uid, dispatch);
+        } catch (error) {
+          console.log("user not logged in", error);
+        }
       }
-    }
+    };
+
+    fetchData();
   }, [state.user, dispatch]);
 
   // const getStatusColor = (status) => {
@@ -54,30 +61,30 @@ const Dashboard = () => {
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
       <h1 className="text-4xl font-bold mb-6">Your Approval Status</h1>
       <div className={`flex flex-col justify-between p-6 rounded-lg shadow-lg   w-100`}>
-        <div>
+        {/* <div>
           <h2 className="text-xl font-semibold">Company Name</h2>
           <p className="mt-2">Status: Todo</p>
-        </div>
+        </div> */}
         <div>
           <div className="flex">
-            <p>Contact Information : </p>
-            <p>{state.companyInformation.status}</p>
+            <p>Contact Information: </p>
+            <p>{state.companyInformation?.status || 'Not submitted'}</p>
           </div>
           <div className="flex">
-            <p>Business Information : </p>
-            <p>{state.businessInformation.status}</p>
+            <p>Business Information: </p>
+            <p>{state.businessInformation?.status || 'Not submitted'}</p>
           </div>
           <div className="flex">
-            <p>Direactor Information : </p>
-            <p>Not submitted</p>
+            <p>Director Information: </p>
+            <p>{state.directorInformation?.status || 'Not submitted'}</p>
           </div>
           <div className="flex">
-            <p>Shareholder Information : </p>
-            <p>Not submitted</p>
+            <p>Shareholder Information: </p>
+            <p>{state.shareholderInformation?.status || 'Not submitted'}</p>
           </div>
           <div className="flex">
-            <p>Payment Information : </p>
-            <p>Not submitted</p>
+            <p>Payment Information: </p>
+            <p>{state.paymentInformation?.status || 'Not submitted'}</p>
           </div>
         </div>
         <div className="mt-4 flex space-x-2">

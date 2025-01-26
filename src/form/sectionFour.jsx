@@ -5,6 +5,7 @@ import { useUserContext } from '../context/UserContext';
 import { useNavigate, useLocation } from 'react-router-dom'; // Import useNavigate and useLocation for redirection and route state management
 import SideNav from "../components/TopNav"; // Importing the TopNav component
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { fetchShareholderData } from '../utils/dashboardUtils';
 
 
 const ShareholderForm = () => {
@@ -56,57 +57,8 @@ const ShareholderForm = () => {
 
   // Add useEffect to fetch existing data
   useEffect(() => {
-    const fetchShareholderData = async () => {
-      try {
-        const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
-        if (!userId) return;
-
-        const shareholdersRef = collection(db, 'shareholders');
-        const q = query(shareholdersRef, where('userId', '==', userId));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          const shareholderData = querySnapshot.docs[0].data();
-          setShareholders(shareholderData.shareholders || []);
-
-          // Set checkbox values based on existing data or defaults
-          const newCheckboxValues = shareholderData.shareholderCheckboxes || shareholderData.shareholders.map(shareholder => ({
-            title: state.user?.role === 'admin' ? false : true,
-            fullName: state.user?.role === 'admin' ? false : true,
-            dob: state.user?.role === 'admin' ? false : true,
-            province: state.user?.role === 'admin' ? false : true,
-            district: state.user?.role === 'admin' ? false : true,
-            division: state.user?.role === 'admin' ? false : true,
-            address1: state.user?.role === 'admin' ? false : true,
-            address2: state.user?.role === 'admin' ? false : true,
-            postCode: state.user?.role === 'admin' ? false : true,
-            phone: state.user?.role === 'admin' ? false : true,
-            mobile: state.user?.role === 'admin' ? false : true,
-            email: state.user?.role === 'admin' ? false : true,
-            shares: state.user?.role === 'admin' ? false : true,
-            nicFront: state.user?.role === 'admin' ? false : true,
-            nicBack: state.user?.role === 'admin' ? false : true,
-            signature: state.user?.role === 'admin' ? false : true,
-          }));
-          setCheckboxValues(newCheckboxValues);
-
-          // Update context
-          dispatch({
-            type: 'SET_SHAREHOLDER_INFORMATION',
-            payload: {
-              shareholders: shareholderData.shareholders,
-              shareholderCheckboxes: newCheckboxValues,
-              status: shareholderData.status,
-              userId: userId
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching shareholder data:', error);
-      }
-    };
-
-    fetchShareholderData();
+    const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
+    fetchShareholderData(userId, dispatch);
   }, [state.user, userIdFromAdmin, dispatch]);
 
   // Add useEffect for user role
