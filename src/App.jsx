@@ -11,7 +11,7 @@ import SectionSix from './form/sectionSix'
 import Login from './pages/LoginPage';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/UserDashboard';
-import SideNav from './components/SideNav';  // Import the SideNav component
+import SideNav from './components/TopNav';  // Import the SideNav component
 import AdminDashboard from './pages/AdminDashboard';
 import { UserProvider } from './context/UserContext';
 import PaymentSuccess from './pages/PaymentSuccess';
