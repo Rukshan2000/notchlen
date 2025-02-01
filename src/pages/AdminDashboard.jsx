@@ -205,7 +205,7 @@ const Dashboard = () => {
                     </button>
                     <button
                       className="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
-                      onClick={() => handleDeleteUser(user.id)}
+                      onClick={() => handleDeleteUsers([user.userId])}
                     >
                       Delete
                     </button>
