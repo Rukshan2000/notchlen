@@ -11,43 +11,84 @@ const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
   const navigate = useNavigate();
   const location = useLocation();
-  const userIdFromAdmin = location.state?.userId;
+
   const [userRole, setUserRole] = useState('admin');
+  const [userIdFromAdmin, setUserIdFromAdmin] = useState('');
 
-  const [directors, setDirectors] = useState([]);
-
-  const [checkboxValues, setCheckboxValues] = useState([{
-    title: true,
-    fullName: true,
-    dob: true,
-    province: true,
-    district: true,
-    division: true,
-    address1: true,
-    address2: true,
-    postCode: true,
-    phone: true,
-    mobile: true,
-    email: true,
-    occupation: true,
-    nicFront: true,
-    nicBack: true,
-    signature: true,
+  const [directors, setDirectors] = useState([{
+    title: '',
+    fullName: '',
+    dob: '',
+    province: '',
+    district: '',
+    division: '',
+    address1: '',
+    address2: '',
+    postCode: '',
+    phone: '',
+    mobile: '',
+    email: '',
+    occupation: '',
+    nicFront: null,
+    nicBack: null,
+    signature: null,
   }]);
 
-  const [previewUrl, setPreviewUrl] = useState(null); // State for preview modal
+  const [checkboxValues, setCheckboxValues] = useState([{
+    title: state.user?.role === 'admin' ? false : true,
+    fullName: state.user?.role === 'admin' ? false : true,
+    dob: state.user?.role === 'admin' ? false : true,
+    province: state.user?.role === 'admin' ? false : true,
+    district: state.user?.role === 'admin' ? false : true,
+    division: state.user?.role === 'admin' ? false : true,
+    address1: state.user?.role === 'admin' ? false : true,
+    address2: state.user?.role === 'admin' ? false : true,
+    postCode: state.user?.role === 'admin' ? false : true,
+    phone: state.user?.role === 'admin' ? false : true,
+    mobile: state.user?.role === 'admin' ? false : true,
+    email: state.user?.role === 'admin' ? false : true,
+    occupation: state.user?.role === 'admin' ? false : true,
+    nicFront: state.user?.role === 'admin' ? false : true,
+    nicBack: state.user?.role === 'admin' ? false : true,
+    signature: state.user?.role === 'admin' ? false : true,
+  }]);
 
   // Fetch existing director data
   useEffect(() => {
+    setUserIdFromAdmin(localStorage.getItem('applicationUserId'));
+    console.log("userIdFromAdmin from section three", userIdFromAdmin);
     const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
-    fetchDirectorData(userId, dispatch);
-  }, [state.user, userIdFromAdmin, dispatch]);
-
-  useEffect(() => {
-    if (state.directorInformation) {
-      setDirectors(state.directorInformation.directors || []);
+    if (userId) {
+      fetchDirectorData(userId, dispatch).then(() => {
+        if (state.directorInformation) {
+          setDirectors(state.directorInformation.directors || []);
+          setCheckboxValues(state.directorInformation.directorCheckboxes || directors.map(() => ({
+            title: state.user?.role === 'admin' ? false : true,
+            fullName: state.user?.role === 'admin' ? false : true,
+            dob: state.user?.role === 'admin' ? false : true,
+            province: state.user?.role === 'admin' ? false : true,
+            district: state.user?.role === 'admin' ? false : true,
+            division: state.user?.role === 'admin' ? false : true,
+            address1: state.user?.role === 'admin' ? false : true,
+            address2: state.user?.role === 'admin' ? false : true,
+            postCode: state.user?.role === 'admin' ? false : true,
+            phone: state.user?.role === 'admin' ? false : true,
+            mobile: state.user?.role === 'admin' ? false : true,
+            email: state.user?.role === 'admin' ? false : true,
+            occupation: state.user?.role === 'admin' ? false : true,
+            nicFront: state.user?.role === 'admin' ? false : true,
+            nicBack: state.user?.role === 'admin' ? false : true,
+            signature: state.user?.role === 'admin' ? false : true,
+          })));
+        }
+      });
     }
-  }, [state.directorInformation]);
+
+
+    if (state.user?.role === 'user') {
+      setUserRole('user');
+    }
+  }, [state.user, userIdFromAdmin, dispatch]);
 
   // Set user role
   useEffect(() => {
@@ -255,26 +296,20 @@ const CorporateBusinessForm = () => {
   const handleFileChange = (e, index, fieldName) => {
     const file = e.target.files[0];
     if (file) {
-      // Create a preview URL for the file
-      const previewUrl = URL.createObjectURL(file);
-
       const newDirectors = [...directors];
       newDirectors[index] = {
         ...newDirectors[index],
         [fieldName]: file,
-        [`${fieldName}Preview`]: previewUrl
       };
       setDirectors(newDirectors);
     }
   };
 
-  const handlePreview = (url) => {
-    setPreviewUrl(url);
+  const handleView = (url) => {
+    window.open(url, '_blank');
   };
 
-  const closePreview = () => {
-    setPreviewUrl(null);
-  };
+  console.log("checkboxValues", checkboxValues);
 
   return (
     <div className="p-6 mx-auto mt-12 bg-gray-100 rounded-lg shadow-lg max-w-8xl">
@@ -313,7 +348,7 @@ const CorporateBusinessForm = () => {
 
       </div>
 
-      <form onSubmit={handleSubmit} className="grid max-w-4xl grid-cols-1 gap-6 p-6 mx-auto bg-white rounded-lg shadow-xl">
+      <form className="grid max-w-4xl grid-cols-1 gap-6 p-6 mx-auto bg-white rounded-lg shadow-xl">
         <h2 className="mb-4 text-2xl font-semibold text-center">Director Information</h2>
 
         {directors.map((director, index) => (
@@ -637,24 +672,24 @@ const CorporateBusinessForm = () => {
                 />
                 <label className="block font-medium">Director NIC Front</label>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 flex items-center">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf"
                   onChange={(e) => handleFileChange(e, index, 'nicFront')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].nicFront}
                 />
-                {(director.nicFrontPreview || director.nicFront?.url) && (
-                  <div className="mt-2" onClick={() => handlePreview(director.nicFrontPreview || director.nicFront?.url)}>
-                    <img
-                      src={director.nicFrontPreview || director.nicFront?.url}
-                      alt="NIC Front Preview"
-                      className="w-40 h-auto object-contain border rounded-lg cursor-pointer"
-                    />
-                  </div>
-                )}
+                <button
+                  className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
+                  onClick={() => handleView(director.nicFront?.url)}
+                >
+                  View
+                </button>
               </div>
+              {director.nicFront?.url && (
+                <span className='text-green-500'>File Uploaded!</span>
+              )}
             </div>
 
             {/* NIC Back Upload */}
@@ -670,24 +705,24 @@ const CorporateBusinessForm = () => {
                 />
                 <label className="block font-medium">Director NIC Back</label>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 flex items-center">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf"
                   onChange={(e) => handleFileChange(e, index, 'nicBack')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].nicBack}
                 />
-                {(director.nicBackPreview || director.nicBack?.url) && (
-                  <div className="mt-2" onClick={() => handlePreview(director.nicBackPreview || director.nicBack?.url)}>
-                    <img
-                      src={director.nicBackPreview || director.nicBack?.url}
-                      alt="NIC Back Preview"
-                      className="w-40 h-auto object-contain border rounded-lg cursor-pointer"
-                    />
-                  </div>
-                )}
+                <button
+                  className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
+                  onClick={() => handleView(director.nicBack?.url)}
+                >
+                  View
+                </button>
               </div>
+              {director.nicBack?.url && (
+                <span className='text-green-500'>File Uploaded!</span>
+              )}
             </div>
 
             {/* Signature Upload */}
@@ -703,24 +738,24 @@ const CorporateBusinessForm = () => {
                 />
                 <label className="block font-medium">Director Signature</label>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 flex items-center">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf"
                   onChange={(e) => handleFileChange(e, index, 'signature')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].signature}
                 />
-                {(director.signaturePreview || director.signature?.url) && (
-                  <div className="mt-2" onClick={() => handlePreview(director.signaturePreview || director.signature?.url)}>
-                    <img
-                      src={director.signaturePreview || director.signature?.url}
-                      alt="Signature Preview"
-                      className="w-40 h-auto object-contain border rounded-lg cursor-pointer"
-                    />
-                  </div>
-                )}
+                <button
+                  className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
+                  onClick={() => handleView(director.signature?.url)}
+                >
+                  View
+                </button>
               </div>
+              {director.signature?.url && (
+                <span className='text-green-500'>File Uploaded!</span>
+              )}
             </div>
           </div>
         ))}
@@ -748,7 +783,7 @@ const CorporateBusinessForm = () => {
           </button>
           <div className="flex gap-4">
             <button
-              type="submit"
+              onClick={handleSubmit}
               className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
             >
               Save
@@ -764,15 +799,6 @@ const CorporateBusinessForm = () => {
         </div>
 
       </form>
-
-      {/* Modal for preview */}
-      {previewUrl && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50" onClick={closePreview}>
-          <div className="bg-white p-4 rounded">
-            <img src={previewUrl} alt="Preview" className="max-w-full max-h-screen" />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

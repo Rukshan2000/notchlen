@@ -8,7 +8,7 @@ import SideNav from "../components/TopNav"; // Importing the TopNav component
 import { getStorage } from 'firebase/storage';
 import { fetchPaymentData, savePaymentData } from '../utils/dashboardUtils';
 
-const CorporateBusinessForm = () => {
+const PaymentForm = () => {
   const { state, dispatch } = useUserContext();
   const navigate = useNavigate(); // Initialize useNavigate hook
 
@@ -34,14 +34,15 @@ const CorporateBusinessForm = () => {
       });
 
       setCheckboxValues({
-        paymentSlip: true
+        // paymentSlip: true
+        paymentSlip: state.user.role === 'admin' ? false : true,
       });
     }
     if (state.user.role === 'user') {
       setUserRole('user');
     }
     if (state.user?.role === 'admin') {
-      setUserIdFromAdmin(state.user.uid);
+      setUserIdFromAdmin(localStorage.getItem('applicationUserId'));
     }
   }, [state.companyInformation, state.user.role]);
 
@@ -52,6 +53,9 @@ const CorporateBusinessForm = () => {
         setFormData({
           paymentSlip: paymentData.paymentSlip,
           paymentSlipPreview: paymentData.paymentSlip.url
+        });
+        setCheckboxValues({
+          paymentSlip: state.user.role === 'admin' ? false : true,
         });
       }
     });
@@ -154,8 +158,9 @@ const CorporateBusinessForm = () => {
     navigate('/section-four', { state: { userId: userIdFromAdmin } });
   };
 
-  const handlePreview = (url) => {
-    setPreviewUrl(url);
+
+  const handleView = (url) => {
+    window.open(url, '_blank');
   };
 
   const closePreview = () => {
@@ -205,8 +210,8 @@ const CorporateBusinessForm = () => {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="grid max-w-4xl grid-cols-1 gap-6 p-6 mx-auto bg-white rounded-lg shadow-xl">
-        <h2 className="col-span-1 mb-4 text-2xl font-semibold text-center">Contact information</h2>
+      <form className="grid max-w-4xl grid-cols-1 gap-6 p-6 mx-auto bg-white rounded-lg shadow-xl">
+        <h2 className="col-span-1 mb-4 text-2xl font-semibold text-center">Payment information</h2>
         <div className="grid grid-cols-2 gap-6 p-6">
           {/* Existing fields... */}
 
@@ -223,24 +228,24 @@ const CorporateBusinessForm = () => {
               />
               <label className="block font-medium">Upload Payment Slip</label>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 flex items-center">
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,application/pdf"
                 onChange={handleFileChange}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues.paymentSlip}
               />
-              {(formData.paymentSlipPreview || (formData.paymentSlip && formData.paymentSlip.url)) && (
-                <div className="mt-2" onClick={() => handlePreview(formData.paymentSlipPreview || formData.paymentSlip.url)}>
-                  <img
-                    src={formData.paymentSlipPreview || formData.paymentSlip.url}
-                    alt="Payment Slip Preview"
-                    className="w-40 h-auto object-contain border rounded-lg cursor-pointer"
-                  />
-                </div>
-              )}
+              <button
+                className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
+                onClick={() => handleView(formData.paymentSlip?.url)}
+              >
+                View
+              </button>
             </div>
+            {formData.paymentSlip?.url && (
+              <span className='text-green-500'>File Uploaded!</span>
+            )}
           </div>
         </div>
 
@@ -254,7 +259,7 @@ const CorporateBusinessForm = () => {
           </button>
           <div className="flex gap-4">
             <button
-              type="submit"
+              onClick={handleSubmit}
               className="px-4 py-2 text-white bg-green-500 hover:bg-green-600 rounded"
             >
               Save
@@ -282,4 +287,4 @@ const CorporateBusinessForm = () => {
   );
 };
 
-export default CorporateBusinessForm;
+export default PaymentForm;

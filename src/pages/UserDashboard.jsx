@@ -35,6 +35,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
+
       <h1 className="mb-6 text-4xl font-bold">Your Approval Status</h1>
       <div className="flex flex-col justify-between w-full max-w-4xl p-6 rounded-lg shadow-lg">
         <div className="space-y-4">
@@ -50,6 +51,7 @@ const Dashboard = () => {
               <p>{status || 'Not submitted'}</p>
             </div>
           ))}
+
         </div>
         <div className="flex mt-6 space-x-4">
           <button

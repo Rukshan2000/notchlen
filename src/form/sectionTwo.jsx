@@ -12,8 +12,7 @@ const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
   const navigate = useNavigate();
   const location = useLocation();
-  const userIdFromAdmin = location.state?.userId;
-
+  const userIdFromAdmin = localStorage.getItem('applicationUserId') ;
   const [formData, setFormData] = useState({
     companyName: '',
     businessType: '',
@@ -78,9 +77,9 @@ const CorporateBusinessForm = () => {
   // Business data fetching useEffect
   useEffect(() => {
     const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
-    console.log("userId from useEffect", userId);
+    console.log("userId from section two useEffect", userId);
 
-    if (userId && !formData.email) {
+    if (userId ) {
       fetchBusinessData(userId, dispatch).then(() => {
         setFormData({
           companyName: state.businessInformation?.companyName || '',
