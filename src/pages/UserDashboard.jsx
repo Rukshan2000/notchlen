@@ -43,7 +43,7 @@ const Dashboard = () => {
             { label: "Contact Information", status: state.companyInformation?.status },
             { label: "Business Information", status: state.businessInformation?.status },
             { label: "Director Information", status: state.directorInformation?.status },
-            { label: "Shareholder Information", status: state.shareholderInformation?.status },
+            { label: "Shareholder Information", status: state.shareHolderInformation?.status },
             { label: "Payment Information", status: state.paymentInformation?.status },
           ].map(({ label, status }) => (
             <div key={label} className="flex justify-between">
