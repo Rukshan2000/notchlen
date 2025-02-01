@@ -80,7 +80,7 @@ const Dashboard = () => {
           </div>
           <div className="flex">
             <p>Shareholder Information: </p>
-            <p>{state.shareholderInformation?.status || 'Not submitted'}</p>
+            <p>{state.shareHolderInformation?.status || 'Not submitted'}</p>
           </div>
           <div className="flex">
             <p>Payment Information: </p>

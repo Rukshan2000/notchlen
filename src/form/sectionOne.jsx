@@ -17,7 +17,7 @@ const CorporateBusinessForm = () => {
   const navigate = useNavigate(); // Initialize useNavigate hook
   const [userRole, setUserRole] = useState('admin');
   const location = useLocation();
-  const userIdFromAdmin = location.state?.userId;
+  const userIdFromAdmin = localStorage.getItem('applicationUserId') ;
   console.log("userIdFromAdmin from section one", userIdFromAdmin);
 
   const [formData, setFormData] = useState({

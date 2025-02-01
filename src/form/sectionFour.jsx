@@ -6,6 +6,10 @@ import { useNavigate, useLocation } from 'react-router-dom'; // Import useNaviga
 import SideNav from "../components/TopNav"; // Importing the TopNav component
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { fetchShareholderData } from '../utils/dashboardUtils';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../firebase';
+import { getUserDocumentByEmail, getUserRole } from '../firestore';
+import { span } from 'framer-motion/client';
 
 
 const ShareholderForm = () => {
@@ -13,7 +17,7 @@ const ShareholderForm = () => {
   const navigate = useNavigate(); // Initialize useNavigate hook
   const location = useLocation(); // Initialize useLocation hook
   const [userRole, setUserRole] = useState('admin');
-  const [userIdFromAdmin, setUserIdFromAdmin] = useState(null);
+  const [userIdFromAdmin, setUserIdFromAdmin] = useState('');
 
   const [shareholders, setShareholders] = useState([{
     title: '',
@@ -35,30 +39,102 @@ const ShareholderForm = () => {
   }]);
 
   const [checkboxValues, setCheckboxValues] = useState([{
-    title: true,
-    fullName: true,
-    dob: true,
-    province: true,
-    district: true,
-    division: true,
-    address1: true,
-    address2: true,
-    postCode: true,
-    phone: true,
-    mobile: true,
-    email: true,
-    shares: true,
-    nicFront: true,
-    nicBack: true,
-    signature: true,
+    title: state.user?.role === 'admin' ? false : true,
+    fullName: state.user?.role === 'admin' ? false : true,
+    dob: state.user?.role === 'admin' ? false : true,
+    province: state.user?.role === 'admin' ? false : true,
+    district: state.user?.role === 'admin' ? false : true,
+    division: state.user?.role === 'admin' ? false : true,
+    address1: state.user?.role === 'admin' ? false : true,
+    address2: state.user?.role === 'admin' ? false : true,
+    postCode: state.user?.role === 'admin' ? false : true,
+    phone: state.user?.role === 'admin' ? false : true,
+    mobile: state.user?.role === 'admin' ? false : true,
+    email: state.user?.role === 'admin' ? false : true,
+    shares: state.user?.role === 'admin' ? false : true,
+    nicFront: state.user?.role === 'admin' ? false : true,
+    nicBack: state.user?.role === 'admin' ? false : true,
+    signature: state.user?.role === 'admin' ? false : true,
   }]);
 
-  const [previewUrl, setPreviewUrl] = useState(null); // State for preview modal
-
-  // Add useEffect to fetch existing data
+  // Auth state management useEffect
   useEffect(() => {
+    // Check localStorage for auth data on component mount
+    const savedAuth = localStorage.getItem('authUser');
+    if (savedAuth) {
+      const authData = JSON.parse(savedAuth);
+      dispatch({
+        type: 'SET_USER',
+        payload: authData
+      });
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Auth State Changed:', user);
+
+      if (user) {
+        // Update localStorage when auth state changes
+        const userDoc = await getUserDocumentByEmail(user.email);
+        const role = await getUserRole(userDoc.id);
+
+        const authData = {
+          email: user.email,
+          uid: user.uid,
+          role: role,
+        };
+
+        localStorage.setItem('authUser', JSON.stringify(authData));
+
+        dispatch({
+          type: 'SET_USER',
+          payload: authData
+        });
+      } else {
+        // Clear localStorage when user signs out
+        localStorage.removeItem('authUser');
+        dispatch({ type: 'CLEAR_USER' });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [dispatch]);
+
+  // Shareholder data fetching useEffect
+  useEffect(() => {
+    setUserIdFromAdmin(localStorage.getItem('applicationUserId'));
+
     const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
-    fetchShareholderData(userId, dispatch);
+    console.log("userId from section four useEffect", userId);
+
+    if (userId) {
+      fetchShareholderData(userId, dispatch).then(() => {
+        if (state.shareHolderInformation) {
+          setShareholders(state.shareHolderInformation.shareholders || [shareholders]);
+          setCheckboxValues(state.shareHolderInformation.shareholderCheckboxes || shareholders.map(() => ({
+            title: state.user?.role === 'admin' ? false : true,
+            fullName: state.user?.role === 'admin' ? false : true,
+            dob: state.user?.role === 'admin' ? false : true,
+            province: state.user?.role === 'admin' ? false : true,
+            district: state.user?.role === 'admin' ? false : true,
+            division: state.user?.role === 'admin' ? false : true,
+            address1: state.user?.role === 'admin' ? false : true,
+            address2: state.user?.role === 'admin' ? false : true,
+            postCode: state.user?.role === 'admin' ? false : true,
+            phone: state.user?.role === 'admin' ? false : true,
+            mobile: state.user?.role === 'admin' ? false : true,
+            email: state.user?.role === 'admin' ? false : true,
+            shares: state.user?.role === 'admin' ? false : true,
+            nicFront: state.user?.role === 'admin' ? false : true,
+            nicBack: state.user?.role === 'admin' ? false : true,
+            signature: state.user?.role === 'admin' ? false : true,
+          })));
+        }
+      });
+    }
+
+    if (state.user?.role === 'user') {
+      setUserRole('user');
+    }
   }, [state.user, userIdFromAdmin, dispatch]);
 
   // Add useEffect for user role
@@ -68,13 +144,8 @@ const ShareholderForm = () => {
     }
   }, [state.user]);
 
-  // Add useEffect for userIdFromAdmin
-  useEffect(() => {
-    const { userId } = location.state || {};
-    if (userId) {
-      setUserIdFromAdmin(userId);
-    }
-  }, [location]);
+
+
 
   const addShareholder = () => {
     setShareholders([...shareholders, {
@@ -134,10 +205,13 @@ const ShareholderForm = () => {
       newShareholders[index] = {
         ...newShareholders[index],
         [fieldName]: file,
-        [`${fieldName}Preview`]: previewUrl
       };
       setShareholders(newShareholders);
     }
+  };
+
+  const handleView = (url) => {
+    window.open(url, '_blank');
   };
 
   const uploadFile = async (file, userId, shareholderIndex, fileType) => {
@@ -191,7 +265,7 @@ const ShareholderForm = () => {
         const signatureFile = shareholder.signature instanceof File ? shareholder.signature : null;
 
         // Get existing file data if available
-        const existingShareholder = state.shareholderInformation?.shareholders[index] || {};
+        const existingShareholder = state.shareHolderInformation?.shareholders[index] || {};
 
         // Upload new files or keep existing URLs
         const nicFront = nicFrontFile
@@ -288,14 +362,6 @@ const ShareholderForm = () => {
     setCheckboxValues(newCheckboxValues);
   };
 
-  const handlePreview = (url) => {
-    setPreviewUrl(url);
-  };
-
-  const closePreview = () => {
-    setPreviewUrl(null);
-  };
-
   return (
     <div className="p-6 mx-auto mt-12 bg-gray-100 rounded-lg shadow-lg max-w-8xl">
       <SideNav />
@@ -331,7 +397,7 @@ const ShareholderForm = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid max-w-4xl grid-cols-1 gap-6 p-6 mx-auto bg-white rounded-lg shadow-xl">
+      <form className="grid max-w-4xl grid-cols-1 gap-6 p-6 mx-auto bg-white rounded-lg shadow-xl">
         <h2 className="mb-4 text-2xl font-semibold text-center">Shareholder Information</h2>
 
         {shareholders.map((shareholder, index) => (
@@ -655,24 +721,24 @@ const ShareholderForm = () => {
                 />
                 <label className="block font-medium">Upload NIC Front</label>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 flex items-center">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf"
                   onChange={(e) => handleFileChange(e, index, 'nicFront')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].nicFront}
                 />
-                {(shareholder.nicFrontPreview || shareholder.nicFront?.url) && (
-                  <div className="mt-2" onClick={() => handlePreview(shareholder.nicFrontPreview || shareholder.nicFront?.url)}>
-                    <img
-                      src={shareholder.nicFrontPreview || shareholder.nicFront?.url}
-                      alt="NIC Front Preview"
-                      className="w-40 h-auto object-contain border rounded-lg cursor-pointer"
-                    />
-                  </div>
-                )}
+                <button
+                  className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
+                  onClick={() => handleView(shareholder.nicFront?.url)}
+                >
+                  View
+                </button>
               </div>
+              {shareholder.nicFront?.url && (
+                <span className='text-green-500'>File Uploaded!</span>
+              )}
             </div>
 
             {/* NIC Back Upload */}
@@ -688,24 +754,24 @@ const ShareholderForm = () => {
                 />
                 <label className="block font-medium">Upload NIC Back</label>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 flex items-center">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf"
                   onChange={(e) => handleFileChange(e, index, 'nicBack')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].nicBack}
                 />
-                {(shareholder.nicBackPreview || shareholder.nicBack?.url) && (
-                  <div className="mt-2" onClick={() => handlePreview(shareholder.nicBackPreview || shareholder.nicBack?.url)}>
-                    <img
-                      src={shareholder.nicBackPreview || shareholder.nicBack?.url}
-                      alt="NIC Back Preview"
-                      className="w-40 h-auto object-contain border rounded-lg cursor-pointer"
-                    />
-                  </div>
-                )}
+                <button
+                  className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
+                  onClick={() => handleView(shareholder.nicBack?.url)}
+                >
+                  View
+                </button>
               </div>
+              {shareholder.nicBack?.url && (
+                <span className='text-green-500'>File Uploaded!</span>
+              )}
             </div>
 
             {/* Signature Upload */}
@@ -721,24 +787,24 @@ const ShareholderForm = () => {
                 />
                 <label className="block font-medium">Upload Signature</label>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 flex items-center">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf"
                   onChange={(e) => handleFileChange(e, index, 'signature')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].signature}
                 />
-                {(shareholder.signaturePreview || shareholder.signature?.url) && (
-                  <div className="mt-2" onClick={() => handlePreview(shareholder.signaturePreview || shareholder.signature?.url)}>
-                    <img
-                      src={shareholder.signaturePreview || shareholder.signature?.url}
-                      alt="Signature Preview"
-                      className="w-40 h-auto object-contain border rounded-lg cursor-pointer"
-                    />
-                  </div>
-                )}
+                <button
+                  className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
+                  onClick={() => handleView(shareholder.signature?.url)}
+                >
+                  View
+                </button>
               </div>
+              {shareholder.signature?.url && (
+                <span className='text-green-500'>File Uploaded!</span>
+              )}
             </div>
 
             {/* Empty div to maintain grid alignment when there's an odd number of file uploads */}
@@ -766,7 +832,7 @@ const ShareholderForm = () => {
           </button>
           <div className="flex gap-4">
             <button
-              type="submit"
+              onClick={handleSubmit}
               className="px-4 py-2 text-white bg-green-500 hover:bg-green-600 rounded"
             >
               Save
@@ -781,15 +847,6 @@ const ShareholderForm = () => {
           </div>
         </div>
       </form>
-
-      {/* Modal for preview */}
-      {previewUrl && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50" onClick={closePreview}>
-          <div className="bg-white p-4 rounded">
-            <img src={previewUrl} alt="Preview" className="max-w-full max-h-screen" />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

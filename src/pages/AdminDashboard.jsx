@@ -1,12 +1,13 @@
 import React, { useContext, useState, useEffect } from 'react';
 import ReactPaginate from "react-paginate";
 import { useReactToPrint } from 'react-to-print';
-import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc, query, where } from "firebase/firestore";
 import usersData from '../data/users.json';
 import { useNavigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import { useUserContext } from '../context/UserContext';
 import { getFormDocumentIdByUserid } from '../firestore';
+import { getStorage, ref, deleteObject, listAll } from 'firebase/storage';
 
 
 
@@ -18,7 +19,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { state, dispatch } = useUserContext();
-  const userIdFromAdmin = location.state?.userId ;
+  const userIdFromAdmin = location.state?.userId;
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -52,14 +53,68 @@ const Dashboard = () => {
   // Paginated users
   const paginatedUsers = users.slice(currentPage * itemsPerPage, currentPage * itemsPerPage + itemsPerPage);
 
-  const handleDeleteUser = async (userId) => {
+  const handleDeleteUsers = async (userIds) => {
+    console.log("userIds", userIds);
     try {
-      const userDoc = doc(getFirestore(), "contacts", userId);
-      await deleteDoc(userDoc);
-      setUsers(users.filter(user => user.id !== userId));
-      alert('User deleted successfully!');
+      const db = getFirestore();
+      const storage = getStorage();
+
+      const deleteStorageFolder = async (folderPath) => {
+        try {
+          const folderRef = ref(storage, folderPath);
+          const list = await listAll(folderRef);
+
+          // Delete all items in subfolders recursively
+          const subFolderPromises = list.prefixes.map(prefix =>
+            deleteStorageFolder(prefix.fullPath)
+          );
+          await Promise.all(subFolderPromises);
+
+          // Delete all files in current folder
+          const filePromises = list.items.map(item =>
+            deleteObject(item)
+          );
+          await Promise.all(filePromises);
+
+        } catch (error) {
+          console.log(`Error deleting folder ${folderPath}:`, error);
+        }
+      };
+
+      const deletePromises = userIds.map(async (userId) => {
+        // Delete from multiple collections
+        const collections = ["contacts", "business", "directors", "payments", "shareholders"];
+        const deleteDocPromises = collections.map(async (collectionName) => {
+          // Query for documents where userId matches
+          const q = query(collection(db, collectionName), where('userId', '==', userId));
+          const querySnapshot = await getDocs(q);
+
+          // Delete all matching documents
+          const docDeletePromises = querySnapshot.docs.map(async (doc) => {
+            await deleteDoc(doc.ref);
+          });
+
+          await Promise.all(docDeletePromises);
+        });
+
+        // Delete associated storage folders
+        try {
+          await deleteStorageFolder(`directors/${userId}`);
+          await deleteStorageFolder(`shareholders/${userId}`);
+          await deleteStorageFolder(`payments/${userId}`);
+        } catch (error) {
+          console.log('Error in storage deletion:', error);
+          // Continue with deletion even if storage deletion fails
+        }
+
+        await Promise.all(deleteDocPromises);
+      });
+
+      await Promise.all(deletePromises);
+      setUsers(users.filter(user => !userIds.includes(user.userId)));
+      alert('Users deleted successfully!');
     } catch (error) {
-      console.error('Error deleting user: ', error);
+      console.error('Error deleting users: ', error);
     }
   };
 
@@ -87,8 +142,14 @@ const Dashboard = () => {
 
   const handleView = async (userId) => {
     console.log("userId", userId);
+    if (localStorage.getItem('applicationUserId')) {
+      localStorage.removeItem('applicationUserId');
+    }
 
-    navigate('/section-one', { state: { userId: userId } });
+    // Save userId in local storage
+    localStorage.setItem('applicationUserId', userId);
+
+    navigate('/section-one');
   };
 
 
@@ -122,7 +183,7 @@ const Dashboard = () => {
                   </button>
                   <button
                     className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition duration-200 ml-2"
-                    onClick={() => handleDeleteUser(user.id)}
+                    onClick={() => handleDeleteUsers([user.userId])}
                   >
                     Delete
                   </button>
