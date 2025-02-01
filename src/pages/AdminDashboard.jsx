@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import ReactPaginate from "react-paginate";
-import { useReactToPrint } from 'react-to-print';
+
+
 import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc, query, where } from "firebase/firestore";
 import usersData from '../data/users.json';
 import { useNavigate } from 'react-router-dom';
@@ -8,18 +9,20 @@ import { useLocation } from 'react-router-dom';
 import { useUserContext } from '../context/UserContext';
 import { getFormDocumentIdByUserid } from '../firestore';
 import { getStorage, ref, deleteObject, listAll } from 'firebase/storage';
-
+import { jsPDF } from "jspdf";
 
 
 const Dashboard = () => {
   const [users, setUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
-  const [itemsPerPage] = useState(5); // Number of users per page
-  const [userDetail, setUserDetail] = useState(null); // Store user detail for viewing
+  const [itemsPerPage] = useState(5);
+  const [userDetail, setUserDetail] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { state, dispatch } = useUserContext();
+
   const userIdFromAdmin = location.state?.userId;
+
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -33,24 +36,27 @@ const Dashboard = () => {
     fetchUsers();
   }, []);
 
-  // Handle pagination
   const handlePageClick = (data) => {
     setCurrentPage(data.selected);
   };
 
-  // View user details
   const handleViewDetails = (user) => {
     setUserDetail(user);
-    console.log("User details", user);
   };
 
-  // Print component for PDF
-  const componentRef = React.useRef();
-  const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
-  });
+  // Function to handle PDF export
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("User Details", 20, 20);
+    doc.text(`Name: ${userDetail.name}`, 20, 30);
+    doc.text(`Email: ${userDetail.email}`, 20, 40);
+    doc.text(`Status: ${userDetail.status}`, 20, 50);
+    
+    // Save the PDF
+    doc.save('user_details.pdf');
+  };
 
-  // Paginated users
   const paginatedUsers = users.slice(currentPage * itemsPerPage, currentPage * itemsPerPage + itemsPerPage);
 
   const handleDeleteUsers = async (userIds) => {
@@ -140,6 +146,7 @@ const Dashboard = () => {
     }
   };
 
+
   const handleView = async (userId) => {
     console.log("userId", userId);
     if (localStorage.getItem('applicationUserId')) {
@@ -150,100 +157,118 @@ const Dashboard = () => {
     localStorage.setItem('applicationUserId', userId);
 
     navigate('/section-one');
+
   };
 
-
-
-  // Inside your Dashboard component
   return (
-    <div className="flex flex-col items-start justify-start h-screen bg-gray-50 p-6 pl-96"> {/* Added padding-left and padding-right */}
-      <h1 className="text-4xl font-bold mb-6 text-center text-blue-600">Admin Dashboard</h1>
-      <div className="overflow-x-auto w-full">
-        <table className="w-5/6 bg-white shadow-lg rounded-lg border border-gray-300"> {/* Adjusted width */}
-          <thead>
-            <tr className="bg-blue-600 text-white uppercase text-sm">
-              <th className="py-3 px-4 text-left">Name</th>
-              <th className="py-3 px-4 text-left">Email</th>
-              <th className="py-3 px-4 text-left">Status</th>
-              <th className="py-3 px-4 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedUsers.map((user, index) => (
-              <tr key={index} className="hover:bg-gray-100 transition-colors duration-200">
-                <td className="py-3 px-4 border-b border-gray-200">{user.name}</td>
-                <td className="py-3 px-4 border-b border-gray-200">{user.email}</td>
-                <td className="py-3 px-4 border-b border-gray-200">{user.status}</td>
-                <td className="py-3 px-4 border-b border-gray-200">
-                  <button
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition duration-200"
-                    onClick={() => handleViewDetails(user)}
-                  >
-                    View
-                  </button>
-                  <button
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition duration-200 ml-2"
-                    onClick={() => handleDeleteUsers([user.userId])}
-                  >
-                    Delete
-                  </button>
-                </td>
+
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Main Content */}
+      <div className="flex-1 p-8">
+        <h1 className="mt-20 mb-8 text-4xl font-bold text-blue-600">User Management</h1>
+
+        <div className="overflow-x-auto bg-white rounded-lg shadow-lg">
+          <table className="w-full border-collapse table-auto">
+            <thead>
+              <tr className="text-sm text-white uppercase bg-blue-600">
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Email</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Actions</th>
+
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination and user details code remains unchanged */}
-
-
-
-      <ReactPaginate
-        previousLabel={"< Previous"}
-        nextLabel={"Next >"}
-        breakLabel={"..."}
-        breakClassName={"break-me"}
-        pageCount={Math.ceil(users.length / itemsPerPage)}
-        marginPagesDisplayed={2}
-        pageRangeDisplayed={5}
-        onPageChange={handlePageClick}
-        containerClassName={"flex justify-center mt-4"}
-        pageClassName={"mx-1"}
-        activeClassName={"bg-blue-500 text-white"}
-        previousClassName={"mr-2 bg-blue-500 text-white px-3 py-1 rounded"}
-        nextClassName={"ml-2 bg-blue-500 text-white px-3 py-1 rounded"}
-      />
-
-      {userDetail && (
-        <div ref={componentRef} className="mt-6 bg-white p-4 rounded-lg shadow-lg">
-          <h2 className="text-xl font-bold text-blue-600">User Details</h2>
-          <p className="mt-2 text-gray-700"><strong>Name:</strong> {userDetail.name}</p>
-          <p className="mt-2 text-gray-700"><strong>Email:</strong> {userDetail.email}</p>
-          <p className="mt-2 text-gray-700"><strong>Status:</strong> {userDetail.status}</p>
-          <button className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg transition duration-200 hover:bg-blue-600" onClick={handlePrint}>
-            Download as PDF
-          </button>
-
-          <button
-            className="ms-2 mt-4 bg-green-500 text-white px-4 py-2 rounded-lg transition duration-200 hover:bg-green-600"
-            onClick={() => handleApprove(userDetail.id)}
-          >
-            Approve
-          </button>
-          <button
-            className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg transition duration-200 hover:bg-red-600 ml-2"
-            onClick={() => handleReject(userDetail.id)}
-          >
-            Reject
-          </button>
-          <button
-            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg transition duration-200 hover:bg-blue-600 ml-2"
-            onClick={() => handleView(userDetail.userId)}
-          >
-            View form
-          </button>
+            </thead>
+            <tbody>
+              {paginatedUsers.map((user, index) => (
+                <tr key={index} className="border-b hover:bg-gray-100">
+                  <td className="px-4 py-3">{user.name}</td>
+                  <td className="px-4 py-3">{user.email}</td>
+                  <td className="px-4 py-3">{user.status}</td>
+                  <td className="px-4 py-3 space-x-2">
+                    <button
+                      className="px-4 py-2 text-white bg-green-500 rounded hover:bg-green-600"
+                      onClick={() => handleViewDetails(user)}
+                    >
+                      View
+                    </button>
+                    <button
+                      className="px-4 py-2 text-white bg-yellow-500 rounded hover:bg-yellow-600"
+                      onClick={() => handleApprove(user.id)}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      className="px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600"
+                      onClick={() => handleReject(user.id)}
+                    >
+                      Reject
+                    </button>
+                    <button
+                      className="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
+                      onClick={() => handleDeleteUser(user.id)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {/* Pagination */}
+        <ReactPaginate
+          previousLabel={"< Previous"}
+          nextLabel={"Next >"}
+          breakLabel={"..."}
+          pageCount={Math.ceil(users.length / itemsPerPage)}
+          marginPagesDisplayed={2}
+          pageRangeDisplayed={5}
+          onPageChange={handlePageClick}
+          containerClassName="flex justify-center mt-4"
+          pageClassName="mx-1"
+          activeClassName="bg-blue-600 text-white"
+          previousClassName="mr-2 bg-blue-500 text-white px-3 py-1 rounded"
+          nextClassName="ml-2 bg-blue-500 text-white px-3 py-1 rounded"
+        />
+
+        {/* User Details Modal */}
+        {userDetail && (
+          <div className="p-6 mt-8 bg-white rounded-lg shadow-lg">
+            <h2 className="text-2xl font-bold text-blue-600">User Details</h2>
+            <p><strong>Name:</strong> {userDetail.name}</p>
+            <p><strong>Email:</strong> {userDetail.email}</p>
+            <p><strong>Status:</strong> {userDetail.status}</p>
+
+            <div className="flex mt-6 space-x-4">
+              <button
+                className="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
+                onClick={handleDownloadPDF}
+              >
+                Download as PDF
+              </button>
+              <button
+                className="px-4 py-2 text-white bg-green-500 rounded hover:bg-green-600"
+                onClick={() => handleApprove(userDetail.id)}
+              >
+                Approve
+              </button>
+              <button
+                className="px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600"
+                onClick={() => handleReject(userDetail.id)}
+              >
+                Reject
+              </button>
+              <button
+                className="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
+                onClick={() => handleView(userDetail.userId)}
+              >
+                View Form
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
