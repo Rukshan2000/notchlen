@@ -6,6 +6,7 @@ import { useUserContext } from '../context/UserContext';
 import { useNavigate, useLocation } from 'react-router-dom'; // Import useNavigate and useLocation for redirection
 import SideNav from "../components/TopNav"; // Importing the TopNav component
 import { fetchBusinessData, fetchDirectorData } from '../utils/dashboardUtils';
+import { updateOverallStatus } from '../utils/statusUpdateUtils';
 
 const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
@@ -88,6 +89,8 @@ const CorporateBusinessForm = () => {
     if (state.user?.role === 'user') {
       setUserRole('user');
     }
+    updateOverallStatus(state.directorInformation.userId, state, dispatch);
+
   }, [state.user, userIdFromAdmin, dispatch]);
 
   // Set user role
@@ -254,10 +257,12 @@ const CorporateBusinessForm = () => {
       if (!querySnapshot.empty) {
         const docRef = doc(db, 'directors', querySnapshot.docs[0].id);
         await updateDoc(docRef, formData);
-        alert('Director information updated successfully!');
+        await updateOverallStatus(formData.userId, state, dispatch);
+
+        console.log('Director information updated successfully!');
       } else {
         await addDoc(directorsRef, formData);
-        alert('Director information saved successfully!');
+        console.log('Director information saved successfully!');
       }
 
       // Update context
@@ -280,7 +285,7 @@ const CorporateBusinessForm = () => {
 
     } catch (error) {
       console.error('Error handling document: ', error);
-      alert('Error saving director information. Please try again.');
+      console.log('Error saving director information. Please try again.');
     }
   };
 

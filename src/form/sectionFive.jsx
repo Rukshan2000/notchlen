@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'; // Import useNavigate for redire
 import SideNav from "../components/TopNav"; // Importing the TopNav component
 import { getStorage } from 'firebase/storage';
 import { fetchPaymentData, savePaymentData } from '../utils/dashboardUtils';
+import { updateOverallStatus } from '../utils/statusUpdateUtils';
 
 const PaymentForm = () => {
   const { state, dispatch } = useUserContext();
@@ -59,6 +60,8 @@ const PaymentForm = () => {
         });
       }
     });
+    updateOverallStatus(userId, state, dispatch);
+
   }, [state.user, userIdFromAdmin, dispatch]);
 
   const handleChange = (e) => {
@@ -141,15 +144,15 @@ const PaymentForm = () => {
       const result = await savePaymentData(formDataToSave, userId);
 
       if (result.success) {
-        alert(result.message);
-        navigate('/section-six', { state: { userId: userIdFromAdmin } });
+        console.log(result.message);
+        navigate('/dashboard');
       } else {
-        alert('Error saving payment information. Please try again.');
+        console.log('Error saving payment information. Please try again.');
       }
 
     } catch (error) {
       console.error('Error handling document: ', error);
-      alert('Error saving payment information. Please try again.');
+      console.log('Error saving payment information. Please try again.');
     }
   };
 
@@ -264,13 +267,13 @@ const PaymentForm = () => {
             >
               Save
             </button>
-            <button
+            {/* <button
               type="button"
               onClick={handleNext}
               className="px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
             >
               Next
-            </button>
+            </button> */}
           </div>
         </div>
       </form>

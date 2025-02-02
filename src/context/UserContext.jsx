@@ -23,6 +23,7 @@ const initialState = {
     status: '',
     userId: null,
     userIdFromAdmin: null,
+    overallStatus: null,
   },
   businessInformation: {
     companyName: '',

@@ -1,6 +1,8 @@
 import React, { useContext, useState, useEffect } from 'react';
 import ReactPaginate from "react-paginate";
 
+import { sendEmailVerification, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+import { db, auth } from '../firebase'; // Import the Firestore and Auth databases
 
 import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc, query, where } from "firebase/firestore";
 import usersData from '../data/users.json';
@@ -10,6 +12,7 @@ import { useUserContext } from '../context/UserContext';
 import { getFormDocumentIdByUserid } from '../firestore';
 import { getStorage, ref, deleteObject, listAll } from 'firebase/storage';
 import { jsPDF } from "jspdf";
+import { getUserDocumentByEmail, getUserRole } from '../firestore';
 
 
 const Dashboard = () => {
@@ -23,6 +26,46 @@ const Dashboard = () => {
 
   const userIdFromAdmin = location.state?.userId;
 
+  useEffect(() => {
+    // Check localStorage for auth data on component mount
+    const savedAuth = localStorage.getItem('authUser');
+    if (savedAuth) {
+      const authData = JSON.parse(savedAuth);
+      dispatch({
+        type: 'SET_USER',
+        payload: authData
+      });
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Auth State Changed:', user);
+
+      if (user) {
+        // Update localStorage when auth state changes
+        const userDoc = await getUserDocumentByEmail(user.email);
+        const role = await getUserRole(userDoc.id);
+
+        const authData = {
+          email: user.email,
+          uid: user.uid,
+          role: role,
+        };
+
+        localStorage.setItem('authUser', JSON.stringify(authData));
+
+        dispatch({
+          type: 'SET_USER',
+          payload: authData
+        });
+      } else {
+        // Clear localStorage when user signs out
+        localStorage.removeItem('authUser');
+        dispatch({ type: 'CLEAR_USER' });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [dispatch]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -52,7 +95,7 @@ const Dashboard = () => {
     doc.text(`Name: ${userDetail.name}`, 20, 30);
     doc.text(`Email: ${userDetail.email}`, 20, 40);
     doc.text(`Status: ${userDetail.status}`, 20, 50);
-    
+
     // Save the PDF
     doc.save('user_details.pdf');
   };
@@ -118,7 +161,7 @@ const Dashboard = () => {
 
       await Promise.all(deletePromises);
       setUsers(users.filter(user => !userIds.includes(user.userId)));
-      alert('Users deleted successfully!');
+      console.log('Users deleted successfully!');
     } catch (error) {
       console.error('Error deleting users: ', error);
     }
@@ -127,9 +170,9 @@ const Dashboard = () => {
   const handleApprove = async (userId) => {
     try {
       const userDoc = doc(getFirestore(), "contacts", userId);
-      await updateDoc(userDoc, { status: "Approved" });
-      setUsers(users.map(user => user.id === userId ? { ...user, status: "Approved" } : user));
-      alert('User approved successfully!');
+      await updateDoc(userDoc, { overallStatus: "Approved" });
+      setUsers(users.map(user => user.id === userId ? { ...user, overallStatus: "Approved" } : user));
+      console.log('User approved successfully!');
     } catch (error) {
       console.error('Error approving user: ', error);
     }
@@ -138,9 +181,9 @@ const Dashboard = () => {
   const handleReject = async (userId) => {
     try {
       const userDoc = doc(getFirestore(), "contacts", userId);
-      await updateDoc(userDoc, { status: "Rejected" });
-      setUsers(users.map(user => user.id === userId ? { ...user, status: "Rejected" } : user));
-      alert('User rejected successfully!');
+      await updateDoc(userDoc, { overallStatus: "Rejected" });
+      setUsers(users.map(user => user.id === userId ? { ...user, overallStatus: "Rejected" } : user));
+      console.log('User rejected successfully!');
     } catch (error) {
       console.error('Error rejecting user: ', error);
     }
@@ -181,9 +224,9 @@ const Dashboard = () => {
             <tbody>
               {paginatedUsers.map((user, index) => (
                 <tr key={index} className="border-b hover:bg-gray-100">
-                  <td className="px-4 py-3">{user.name}</td>
+                  <td className="px-4 py-3">{user.contactPersonName}</td>
                   <td className="px-4 py-3">{user.email}</td>
-                  <td className="px-4 py-3">{user.status}</td>
+                  <td className="px-4 py-3">{user.overallStatus}</td>
                   <td className="px-4 py-3 space-x-2">
                     <button
                       className="px-4 py-2 text-white bg-green-500 rounded hover:bg-green-600"
@@ -236,9 +279,9 @@ const Dashboard = () => {
         {userDetail && (
           <div className="p-6 mt-8 bg-white rounded-lg shadow-lg">
             <h2 className="text-2xl font-bold text-blue-600">User Details</h2>
-            <p><strong>Name:</strong> {userDetail.name}</p>
+            <p><strong>Name:</strong> {userDetail.contactPersonName}</p>
             <p><strong>Email:</strong> {userDetail.email}</p>
-            <p><strong>Status:</strong> {userDetail.status}</p>
+            <p><strong>Status:</strong> {userDetail.overallStatus}</p>
 
             <div className="flex mt-6 space-x-4">
               <button

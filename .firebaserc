@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "atmo-law-firm"
-  }
+    "default": "e-corporate",
+    "prod": "e-corporate"
+  },
+  "targets": {},
+  "etags": {}
 }

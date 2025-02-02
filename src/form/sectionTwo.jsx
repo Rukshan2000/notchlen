@@ -7,12 +7,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import SideNav from "../components/TopNav";
 import { fetchBusinessData } from '../utils/dashboardUtils';
 import { getUserDocumentByEmail, getUserRole } from '../firestore';
+import { updateOverallStatus } from '../utils/statusUpdateUtils';
+
 
 const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
   const navigate = useNavigate();
   const location = useLocation();
-  const userIdFromAdmin = localStorage.getItem('applicationUserId') ;
+  const userIdFromAdmin = localStorage.getItem('applicationUserId');
   const [formData, setFormData] = useState({
     companyName: '',
     businessType: '',
@@ -76,10 +78,11 @@ const CorporateBusinessForm = () => {
 
   // Business data fetching useEffect
   useEffect(() => {
+
     const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
     console.log("userId from section two useEffect", userId);
 
-    if (userId ) {
+    if (userId) {
       fetchBusinessData(userId, dispatch).then(() => {
         setFormData({
           companyName: state.businessInformation?.companyName || '',
@@ -104,6 +107,8 @@ const CorporateBusinessForm = () => {
     if (state.user?.role === 'user') {
       setUserRole('user');
     }
+    updateOverallStatus(state.businessInformation.userId, state, dispatch);
+
   }, [state.user, userIdFromAdmin, dispatch]);
 
   const handleChange = (e) => {
@@ -151,17 +156,19 @@ const CorporateBusinessForm = () => {
       if (!querySnapshot.empty) {
         const docRef = doc(db, 'business', querySnapshot.docs[0].id);
         await updateDoc(docRef, dataToUpdate);
-        alert('Business information updated successfully!');
+        await updateOverallStatus(state.businessInformation.userId, state, dispatch);
+
+        console.log('Business information updated successfully!');
       } else {
         await addDoc(businessRef, dataToAdd);
-        alert('Business information saved successfully!');
+        console.log('Business information saved successfully!');
       }
 
       navigate('/section-three', { state: { userId: userIdFromAdmin } });
 
     } catch (error) {
       console.error('Error handling document: ', error);
-      alert('Error saving business information. Please try again.');
+      console.log('Error saving business information. Please try again.');
     }
   };
 
