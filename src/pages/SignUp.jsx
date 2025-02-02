@@ -3,6 +3,7 @@ import { signUp } from '../auth';
 import { addUserToFirestore } from '../firestore'; 
 import bgVideo from '../assets/bg.mp4'; // Importing the background video
 import logo from '../assets/long.png'; // Importing the logo image
+import { useNavigate} from 'react-router-dom'; // Import useNavigate for redirection
 
 const SignUp = () => {
   const [name, setName] = useState("");
@@ -10,6 +11,7 @@ const SignUp = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const navigate = useNavigate(); 
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -18,8 +20,7 @@ const SignUp = () => {
     try {
       const user = await signUp(email, password); // Sign up the user
       await addUserToFirestore(user.uid, { email, name }); // Add user to Firestore
-      alert("User signed up successfully!"); // Notify success
-      navigate('/');
+          navigate('/');
     } catch (error) {
       setError(error.message); // Set error message
     }

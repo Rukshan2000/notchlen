@@ -9,15 +9,16 @@ import { getFormDocumentIdByUserid } from '../firestore';
 import { fetchContactData } from '../utils/dashboardUtils';
 import { getUserDocumentByEmail, getUserRole } from '../firestore';
 import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/auth';
+import { updateOverallStatus } from '../utils/statusUpdateUtils';
 
 const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
   console.log("state is the one", state);
 
-  const navigate = useNavigate(); // Initialize useNavigate hook
+  const navigate = useNavigate(); 
   const [userRole, setUserRole] = useState('admin');
   const location = useLocation();
-  const userIdFromAdmin = localStorage.getItem('applicationUserId') ;
+  const userIdFromAdmin = localStorage.getItem('applicationUserId');
   console.log("userIdFromAdmin from section one", userIdFromAdmin);
 
   const [formData, setFormData] = useState({
@@ -80,6 +81,7 @@ const CorporateBusinessForm = () => {
   }, [dispatch]);
 
   useEffect(() => {
+
     const userId = state.user.role === 'admin' ? userIdFromAdmin : state.user.uid;
     console.log("userId from useEffect", userId);
 
@@ -109,6 +111,8 @@ const CorporateBusinessForm = () => {
     if (state.user.role === 'user') {
       setUserRole('user');
     }
+    updateOverallStatus(state.companyInformation.userId, state, dispatch);
+
   }, [state.user, userIdFromAdmin, dispatch]);
 
   const handleChange = (e) => {
@@ -134,6 +138,7 @@ const CorporateBusinessForm = () => {
         checkContactPersonEmail: state.user.role === 'user' ? false : checkboxValues.contactPersonEmail,
         checkContactPersonPhone: state.user.role === 'user' ? false : checkboxValues.contactPersonPhone,
         status: 'Pending',
+        overallStatus: 'Pending',
         createdAt: serverTimestamp(),
         userId: state.user.uid
       };
@@ -157,10 +162,10 @@ const CorporateBusinessForm = () => {
       if (!querySnapshot.empty) {
         const docRef = doc(db, 'contacts', querySnapshot.docs[0].id);
         await updateDoc(docRef, dataToUpdate);
-        alert('Contact updated successfully!');
+        console.log('Contact updated successfully!');
       } else {
         await addDoc(collection(db, 'contacts'), dataToAdd);
-        alert('Contact saved successfully!');
+        console.log('Contact saved successfully!');
       }
 
       // Redirect user to form2 after successful submission
@@ -168,7 +173,7 @@ const CorporateBusinessForm = () => {
 
     } catch (error) {
       console.error('Error handling document: ', error);
-      alert('Error saving contact. Please try again.');
+      console.log('Error saving contact. Please try again.');
     }
   };
 

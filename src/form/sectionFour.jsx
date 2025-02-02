@@ -10,6 +10,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 import { getUserDocumentByEmail, getUserRole } from '../firestore';
 import { span } from 'framer-motion/client';
+import { updateOverallStatus } from '../utils/statusUpdateUtils';
 
 
 const ShareholderForm = () => {
@@ -135,6 +136,8 @@ const ShareholderForm = () => {
     if (state.user?.role === 'user') {
       setUserRole('user');
     }
+    updateOverallStatus(state.shareHolderInformation.userId, state, dispatch);
+
   }, [state.user, userIdFromAdmin, dispatch]);
 
   // Add useEffect for user role
@@ -314,10 +317,10 @@ const ShareholderForm = () => {
       if (!querySnapshot.empty) {
         const docRef = doc(db, 'shareholders', querySnapshot.docs[0].id);
         await updateDoc(docRef, formData);
-        alert('Shareholder information updated successfully!');
+        console.log('Shareholder information updated successfully!');
       } else {
         await addDoc(shareholdersRef, formData);
-        alert('Shareholder information saved successfully!');
+        console.log('Shareholder information saved successfully!');
       }
 
       // Update context
@@ -340,7 +343,7 @@ const ShareholderForm = () => {
 
     } catch (error) {
       console.error('Error handling document: ', error);
-      alert('Error saving shareholder information. Please try again.');
+      console.log('Error saving shareholder information. Please try again.');
     }
   };
 

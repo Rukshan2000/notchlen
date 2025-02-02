@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { logOut } from '../auth';
 import logo from '../assets/long.png'; // Importing the logo
+import { useUserContext } from '../context/UserContext';
 
 const TopNav = () => {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false); // State to manage modal visibility
+  const { state } = useUserContext(); // Make sure to import and use your UserContext
 
   const handleLogout = async () => {
     try {
@@ -40,8 +42,8 @@ const TopNav = () => {
         />
         <ul className="flex space-x-6 text-gray-800">
           <li>
-            <Link to="/dashboard" className="font-medium transition-colors duration-300 hover:text-blue-500">
-              Home
+            <Link to={state.user?.role === 'user' ? "/dashboard" : "/adminDashboard"} className="font-medium transition-colors duration-300 hover:text-blue-500">
+           Home
             </Link>
           </li>
           <li>
