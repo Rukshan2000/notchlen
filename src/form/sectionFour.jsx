@@ -136,7 +136,7 @@ const ShareholderForm = () => {
     if (state.user?.role === 'user') {
       setUserRole('user');
     }
-    updateOverallStatus(state.shareHolderInformation.userId, state, dispatch);
+ 
 
   }, [state.user, userIdFromAdmin, dispatch]);
 
@@ -317,6 +317,7 @@ const ShareholderForm = () => {
       if (!querySnapshot.empty) {
         const docRef = doc(db, 'shareholders', querySnapshot.docs[0].id);
         await updateDoc(docRef, formData);
+        await updateOverallStatus(state.shareHolderInformation.userId, state, dispatch);
         console.log('Shareholder information updated successfully!');
       } else {
         await addDoc(shareholdersRef, formData);

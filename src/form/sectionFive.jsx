@@ -60,7 +60,7 @@ const PaymentForm = () => {
         });
       }
     });
-    updateOverallStatus(userId, state, dispatch);
+
 
   }, [state.user, userIdFromAdmin, dispatch]);
 
@@ -123,7 +123,12 @@ const PaymentForm = () => {
 
       // Upload payment slip
       const paymentSlipFile = formData.paymentSlip instanceof File ? formData.paymentSlip : null;
-      const existingPayment = state.paymentInformation || {};
+
+      // Get existing payment data
+      const paymentsRef = collection(db, 'payments');
+      const q = query(paymentsRef, where('userId', '==', userId));
+      const querySnapshot = await getDocs(q);
+      const existingPayment = querySnapshot.empty ? {} : querySnapshot.docs[0].data();
 
       // Upload new file or keep existing URL
       const paymentSlip = paymentSlipFile
@@ -139,16 +144,39 @@ const PaymentForm = () => {
         paymentSlip,
         status: state.user?.role === 'admin' ? 'Resubmit' : 'Pending',
         userId: userId,
+        createdAt: serverTimestamp(),
       };
 
-      const result = await savePaymentData(formDataToSave, userId);
+      // Check if document exists and update or create accordingly
+      if (!querySnapshot.empty) {
+        const docRef = doc(db, 'payments', querySnapshot.docs[0].id);
+        await updateDoc(docRef, formDataToSave);
+        await updateOverallStatus(userId, state, dispatch);
 
-      if (result.success) {
-        console.log(result.message);
-        navigate('/dashboard');
+        console.log('Payment information updated successfully!');
       } else {
-        console.log('Error saving payment information. Please try again.');
+        await addDoc(paymentsRef, formDataToSave);
+        console.log('Payment information saved successfully!');
       }
+
+      // Update context
+      dispatch({
+        type: 'SET_PAYMENT_INFORMATION',
+        payload: {
+          paymentSlip,
+          status: formDataToSave.status,
+          userId: formDataToSave.userId
+        }
+      });
+
+      // Only update local checkbox state if user is not admin
+      if (state.user?.role !== 'admin') {
+        setCheckboxValues({
+          paymentSlip: true
+        });
+      }
+
+      navigate('/dashboard');
 
     } catch (error) {
       console.error('Error handling document: ', error);

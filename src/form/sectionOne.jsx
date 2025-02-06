@@ -111,7 +111,7 @@ const CorporateBusinessForm = () => {
     if (state.user.role === 'user') {
       setUserRole('user');
     }
-    updateOverallStatus(state.companyInformation.userId, state, dispatch);
+   
 
   }, [state.user, userIdFromAdmin, dispatch]);
 
@@ -162,6 +162,7 @@ const CorporateBusinessForm = () => {
       if (!querySnapshot.empty) {
         const docRef = doc(db, 'contacts', querySnapshot.docs[0].id);
         await updateDoc(docRef, dataToUpdate);
+        await updateOverallStatus(state.companyInformation.userId, state, dispatch);
         console.log('Contact updated successfully!');
       } else {
         await addDoc(collection(db, 'contacts'), dataToAdd);
