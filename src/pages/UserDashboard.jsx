@@ -24,7 +24,7 @@ const Dashboard = () => {
     };
 
     fetchData();
-    updateOverallStatus(state.user.uid, state, dispatch);
+    // updateOverallStatus(state.user.uid, state, dispatch);
   }, [state.user, dispatch]);
 
   const handleEditClick = () => {

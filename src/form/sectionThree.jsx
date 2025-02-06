@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebase'; // Import the Firestore database
+import { auth, db } from '../firebase'; // Import the Firestore database
 import { collection, addDoc, serverTimestamp, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useUserContext } from '../context/UserContext';
@@ -7,6 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom'; // Import useNaviga
 import SideNav from "../components/TopNav"; // Importing the TopNav component
 import { fetchBusinessData, fetchDirectorData } from '../utils/dashboardUtils';
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
@@ -54,6 +55,48 @@ const CorporateBusinessForm = () => {
     signature: state.user?.role === 'admin' ? false : true,
   }]);
 
+    // Auth state management useEffect
+    useEffect(() => {
+      // Check localStorage for auth data on component mount
+      const savedAuth = localStorage.getItem('authUser');
+      if (savedAuth) {
+        const authData = JSON.parse(savedAuth);
+        dispatch({
+          type: 'SET_USER',
+          payload: authData
+        });
+      }
+  
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        console.log('Auth State Changed:', user);
+  
+        if (user) {
+          // Update localStorage when auth state changes
+          const userDoc = await getUserDocumentByEmail(user.email);
+          const role = await getUserRole(userDoc.id);
+  
+          const authData = {
+            email: user.email,
+            uid: user.uid,
+            role: role,
+          };
+  
+          localStorage.setItem('authUser', JSON.stringify(authData));
+  
+          dispatch({
+            type: 'SET_USER',
+            payload: authData
+          });
+        } else {
+          // Clear localStorage when user signs out
+          localStorage.removeItem('authUser');
+          dispatch({ type: 'CLEAR_USER' });
+        }
+      });
+  
+      return () => unsubscribe();
+    }, [dispatch]);
+    
   // Fetch existing director data
   useEffect(() => {
     setUserIdFromAdmin(localStorage.getItem('applicationUserId'));
@@ -89,7 +132,7 @@ const CorporateBusinessForm = () => {
     if (state.user?.role === 'user') {
       setUserRole('user');
     }
-    updateOverallStatus(state.directorInformation.userId, state, dispatch);
+
 
   }, [state.user, userIdFromAdmin, dispatch]);
 
@@ -257,8 +300,8 @@ const CorporateBusinessForm = () => {
       if (!querySnapshot.empty) {
         const docRef = doc(db, 'directors', querySnapshot.docs[0].id);
         await updateDoc(docRef, formData);
-        await updateOverallStatus(formData.userId, state, dispatch);
-
+        // await updateOverallStatus(formData.userId, state, dispatch);
+        await updateOverallStatus(state.directorInformation.userId, state, dispatch);
         console.log('Director information updated successfully!');
       } else {
         await addDoc(directorsRef, formData);
