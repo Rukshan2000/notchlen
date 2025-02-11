@@ -90,7 +90,7 @@ const PaymentForm = () => {
     console.log("reference", reference);
 
     // Get the cloud function URL from Firebase
-    const callbackUrl = 'https://YOUR_REGION-YOUR_PROJECT_ID.cloudfunctions.net/onepayCallback';
+    const callbackUrl = `https://${process.env.APP_REGION}-${process.env.APP_PROJECT_ID}.cloudfunctions.net/onepayCallback`;
 
 
     let data = JSON.stringify({
@@ -144,7 +144,7 @@ const PaymentForm = () => {
           console.log("payment response", response.data.data.gateway.redirect_url);
           const redirectUrl = response.data.data.gateway.redirect_url;
           // Use navigate for redirection
- 
+
           window.open(redirectUrl, '_blank');
 
         })

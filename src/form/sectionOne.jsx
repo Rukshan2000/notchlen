@@ -197,25 +197,32 @@ const CorporateBusinessForm = () => {
     generateOtp();
 
     try {
-      // Create email template
       const emailContent = {
         to: formData.contactPersonEmail,
         message: {
           subject: 'Email Verification OTP',
           html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px;">
-              <h2>Email Verification</h2>
-              <p>Your OTP for email verification is:</p>
-              <h1 style="color: #4A90E2;">${otp}</h1>
-              <p>This OTP will expire in 10 minutes.</p>
-            </div>
-          `
+                    <div style="font-family: Arial, sans-serif; padding: 20px;">
+                        <h2>Email Verification</h2>
+                        <p>Your OTP for email verification is:</p>
+                        <h1 style="color: #4A90E2;">${otp}</h1>
+                        <p>This OTP will expire in 10 minutes.</p>
+                    </div>
+                `
         }
       };
 
-      // Send email using Firebase Cloud Function
-      const sendEmailFunction = httpsCallable(functions, 'sendEmail');
-      await sendEmailFunction(emailContent);
+      const response = await fetch('https://us-central1-e-corporate.cloudfunctions.net/sendEmail', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailContent)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send email');
+      }
 
       alert('OTP sent successfully!');
     } catch (error) {
