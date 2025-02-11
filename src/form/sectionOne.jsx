@@ -10,16 +10,19 @@ import { fetchContactData } from '../utils/dashboardUtils';
 import { getUserDocumentByEmail, getUserRole } from '../firestore';
 import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../firebase';
 
 const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
   console.log("state is the one", state);
 
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
   const [userRole, setUserRole] = useState('admin');
   const location = useLocation();
   const userIdFromAdmin = localStorage.getItem('applicationUserId');
   console.log("userIdFromAdmin from section one", userIdFromAdmin);
+  const [otp, setOtp] = useState('');
 
   const [formData, setFormData] = useState({
     email: '',
@@ -111,7 +114,7 @@ const CorporateBusinessForm = () => {
     if (state.user.role === 'user') {
       setUserRole('user');
     }
-   
+
 
   }, [state.user, userIdFromAdmin, dispatch]);
 
@@ -181,6 +184,48 @@ const CorporateBusinessForm = () => {
   const handleNext = () => {
     navigate('/section-two', { state: { userId: userIdFromAdmin } });
 
+  };
+
+
+  const generateOtp = () => {
+    // Generate a 6-digit number between 100000 and 999999
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    setOtp(otp);
+  };
+
+  const handleEmailSend = async () => {
+    generateOtp();
+
+    try {
+      // Create email template
+      const emailContent = {
+        to: formData.contactPersonEmail,
+        message: {
+          subject: 'Email Verification OTP',
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+              <h2>Email Verification</h2>
+              <p>Your OTP for email verification is:</p>
+              <h1 style="color: #4A90E2;">${otp}</h1>
+              <p>This OTP will expire in 10 minutes.</p>
+            </div>
+          `
+        }
+      };
+
+      // Send email using Firebase Cloud Function
+      const sendEmailFunction = httpsCallable(functions, 'sendEmail');
+      await sendEmailFunction(emailContent);
+
+      alert('OTP sent successfully!');
+    } catch (error) {
+      console.error('Error sending OTP:', error);
+      alert('Failed to send OTP. Please try again.');
+    }
+  };
+
+  const handleEmailVarify = () => {
+    console.log("Email otp clicked");
   };
 
   return (
@@ -342,14 +387,41 @@ const CorporateBusinessForm = () => {
               />
               <label className="block font-medium">Contact Person's Email Address</label>
             </div>
-            <input
-              type="email"
-              name="contactPersonEmail"
-              value={formData.contactPersonEmail}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
-              disabled={!checkboxValues.contactPersonEmail}
-            />
+            <div className="flex mb-3">
+              <input
+                type="email"
+                name="contactPersonEmail"
+                value={formData.contactPersonEmail}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                disabled={!checkboxValues.contactPersonEmail}
+              />
+              <button
+                type="button"
+                onClick={handleEmailSend}
+                className="ms-2 px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
+              >
+                Send
+              </button>
+            </div>
+            <div className="flex">
+              <input
+                type="email"
+                placeholder="Enter OTP"
+                name="contactPersonEmailVarified"
+                value={formData.contactPersonEmailVarified}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+
+              />
+              <button
+                type="button"
+                onClick={handleEmailVarify}
+                className="ms-2 px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
+              >
+                Verify
+              </button>
+            </div>
           </div>
 
           {/* Contact Person Phone */}

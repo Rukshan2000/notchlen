@@ -9,6 +9,9 @@ import { getStorage } from 'firebase/storage';
 import { fetchPaymentData, savePaymentData } from '../utils/dashboardUtils';
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
 
+import axios from 'axios';
+
+
 const PaymentForm = () => {
   const { state, dispatch } = useUserContext();
   const navigate = useNavigate(); // Initialize useNavigate hook
@@ -79,6 +82,76 @@ const PaymentForm = () => {
         paymentSlipPreview: previewUrl
       });
     }
+  };
+
+  const handlePaymentClick = async () => {
+    // Generate a unique reference number
+    const reference = `ref${new Date().getTime()}`;
+    console.log("reference", reference);
+
+    // Get the cloud function URL from Firebase
+    const callbackUrl = 'https://YOUR_REGION-YOUR_PROJECT_ID.cloudfunctions.net/onepayCallback';
+
+
+    let data = JSON.stringify({
+      "currency": "LKR",
+      "amount": 150.00,
+      "app_id": "1E03118E6346439CD8BAA",
+      "reference": reference,
+      "customer_first_name": state.companyInformation?.contactPersonName || "first name",
+      "customer_last_name": "last name",
+      "customer_phone_number": state.companyInformation?.contactPersonPhone || "+94777777777",
+      "customer_email": state.companyInformation?.contactPersonEmail || "user@example.com",
+      "transaction_redirect_url": window.location.origin + "/payment-success",
+      "hash": "4bd5fc622889d0b8949aafbfc725b28bb3886daed4e2d0dfd5cfeccb0b66241a",
+      "additional_data": JSON.stringify({
+        userId: state.user.uid,
+        timestamp: reference
+      }),
+    });
+
+    // First save the payment reference to Firestore
+    const savePaymentRef = async () => {
+      try {
+        const paymentRef = collection(db, 'payments');
+        await addDoc(paymentRef, {
+          userId: state.user.uid,
+          reference: reference,
+          amount: 150.00,
+          status: 'Pending',
+          createdAt: serverTimestamp()
+        });
+      } catch (error) {
+        console.error('Error saving payment reference:', error);
+        return;
+      }
+    };
+
+
+    // Save reference then make payment request
+    savePaymentRef().then(() => {
+      axios.request({
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://api.onepay.lk/v3/checkout/link/',
+        headers: {
+          'Authorization': 'cfa55ae63f7458d7319599a1ad61f0b2bf31ea062971c8b233a579836c944ec287a9adc859a761c9.42ZJ118E6346439CD8BF5',
+          'Content-Type': 'application/json'
+        },
+        data: data
+      })
+        .then((response) => {
+          console.log("payment response", response.data.data.gateway.redirect_url);
+          const redirectUrl = response.data.data.gateway.redirect_url;
+          // Use navigate for redirection
+ 
+          window.open(redirectUrl, '_blank');
+
+        })
+        .catch((error) => {
+          console.log("payment error", error);
+        });
+    });
   };
 
   const handleCheckboxChange = (e) => {
@@ -294,6 +367,13 @@ const PaymentForm = () => {
               className="px-4 py-2 text-white bg-green-500 hover:bg-green-600 rounded"
             >
               Save
+            </button>
+            <button
+              type="button"
+              onClick={handlePaymentClick}
+              className="px-4 py-2 font-semibold text-white transition duration-200 bg-blue-500 rounded-lg hover:bg-blue-600"
+            >
+              Payment
             </button>
             {/* <button
               type="button"
