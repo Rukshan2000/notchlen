@@ -90,20 +90,20 @@ const PaymentForm = () => {
     console.log("reference", reference);
 
     // Get the cloud function URL from Firebase
-    const callbackUrl = `https://${process.env.APP_REGION}-${process.env.APP_PROJECT_ID}.cloudfunctions.net/onepayCallback`;
+    // const callbackUrl = `https://${process.env.APP_REGION}-${process.env.APP_PROJECT_ID}.cloudfunctions.net/onepayCallback`;
 
 
     let data = JSON.stringify({
       "currency": "LKR",
       "amount": 150.00,
-      "app_id": "1E03118E6346439CD8BAA",
+      "app_id": "CBN01190734B13223DDA9",
       "reference": reference,
       "customer_first_name": state.companyInformation?.contactPersonName || "first name",
       "customer_last_name": "last name",
       "customer_phone_number": state.companyInformation?.contactPersonPhone || "+94777777777",
       "customer_email": state.companyInformation?.contactPersonEmail || "user@example.com",
       "transaction_redirect_url": window.location.origin + "/payment-success",
-      "hash": "4bd5fc622889d0b8949aafbfc725b28bb3886daed4e2d0dfd5cfeccb0b66241a",
+      "hash": "1ee71507ddd93f082f51740b1c0fc80298d1d99ef758d9b7132df209628c5a71",
       "additional_data": JSON.stringify({
         userId: state.user.uid,
         timestamp: reference
@@ -135,7 +135,7 @@ const PaymentForm = () => {
         maxBodyLength: Infinity,
         url: 'https://api.onepay.lk/v3/checkout/link/',
         headers: {
-          'Authorization': 'cfa55ae63f7458d7319599a1ad61f0b2bf31ea062971c8b233a579836c944ec287a9adc859a761c9.42ZJ118E6346439CD8BF5',
+          'Authorization': 'ab9e37baf2579dd2ca7ba920bbad67e9df7a65c10443ff330b2dd66a67a81d08cefd9751f596e9b2.YX4E1190734B13223DE36',
           'Content-Type': 'application/json'
         },
         data: data

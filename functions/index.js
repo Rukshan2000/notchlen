@@ -24,6 +24,8 @@ exports.onepayCallback = functions.https.onRequest(async (request, response) => 
             return;
         }
 
+        console.log(request);
+
         try {
             const paymentData = request.body;
             console.log('Payment callback received:', paymentData);
@@ -64,7 +66,7 @@ exports.onepayCallback = functions.https.onRequest(async (request, response) => 
                 }
             }
 
-            // Send response back to Onepay  hello
+            // Send response back to Onepay  
             response.status(200).json({ status: 'success' });
         } catch (error) {
             console.error('Error processing payment callback:', error);
