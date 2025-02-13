@@ -30,6 +30,8 @@ const PaymentForm = () => {
 
   const [previewUrl, setPreviewUrl] = useState(null); // State for preview modal
 
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
   useEffect(() => {
     if (state.paymentInformation.userId) {
       setFormData({
@@ -159,6 +161,10 @@ const PaymentForm = () => {
     setCheckboxValues({ ...checkboxValues, [name]: checked });
   };
 
+  const handleTermsChange = (e) => {
+    setTermsAccepted(e.target.checked);
+  };
+
   const uploadFile = async (file, userId) => {
     if (!file) return null;
 
@@ -191,6 +197,12 @@ const PaymentForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!termsAccepted) {
+      alert('Please accept the terms and conditions to continue.');
+      return;
+    }
+
     try {
       const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
 
@@ -218,6 +230,8 @@ const PaymentForm = () => {
         status: state.user?.role === 'admin' ? 'Resubmit' : 'Pending',
         userId: userId,
         createdAt: serverTimestamp(),
+        termsAccepted: termsAccepted,
+        termsAcceptedAt: serverTimestamp()
       };
 
       // Check if document exists and update or create accordingly
@@ -354,6 +368,28 @@ const PaymentForm = () => {
           </div>
         </div>
 
+        <div className="flex items-center mt-4">
+          <input
+            type="checkbox"
+            id="terms"
+            checked={termsAccepted}
+            onChange={handleTermsChange}
+            className="mr-2"
+          />
+          <p className="text-black">
+            * I have read and agree to the &nbsp;
+            <a
+              href="https://corporate.lk/terms%20&%20conditions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              Terms and Conditions.
+            </a>
+            
+          </p>
+        </div>
+
         <div className="flex justify-between mt-6">
           <button
             type="button"
@@ -367,7 +403,7 @@ const PaymentForm = () => {
               onClick={handleSubmit}
               className="px-4 py-2 text-white bg-green-500 hover:bg-green-600 rounded"
             >
-              Save
+              Submit
             </button>
             <button
               type="button"
