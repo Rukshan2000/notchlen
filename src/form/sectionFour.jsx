@@ -416,16 +416,16 @@ const ShareholderForm = () => {
 
         {shareholders.map((shareholder, index) => (
           <div key={index} className="grid grid-cols-2 gap-6 p-6 border-b border-gray-300">
-                {/* Add delete button at the top right of each shareholder section */}
-                <div className="col-span-2 flex justify-end mb-4">
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteShareholder(index)}
-                    className="px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-lg"
-                  >
-                    Delete Shareholder
-                  </button>
-                </div>
+            {/* Add delete button at the top right of each shareholder section */}
+            <div className="col-span-2 flex justify-end mb-4">
+              <button
+                type="button"
+                onClick={() => handleDeleteShareholder(index)}
+                className="px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-lg"
+              >
+                Delete Shareholder
+              </button>
+            </div>
 
             {/* Title */}
             <div className="mb-4">
@@ -886,6 +886,10 @@ const ShareholderForm = () => {
               Next
             </button>
           </div>
+        </div>
+        <div className="mt-4">
+          <hr className="mb-8 border-gray-300" />
+          <p className="my-4 text-center text-black">By accessing or using the Services, you agree to be bound by these Terms as if signed by you.</p>
         </div>
       </form>
     </div>

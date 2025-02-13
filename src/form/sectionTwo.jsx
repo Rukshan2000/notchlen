@@ -401,6 +401,10 @@ const CorporateBusinessForm = () => {
             </button>
           </div>
         </div>
+        <div className="mt-4">
+          <hr className="mb-8 border-gray-300" />
+          <p className="my-4 text-center text-black">By accessing or using the Services, you agree to be bound by these Terms as if signed by you.</p>
+        </div>
       </form>
     </div>
   );
