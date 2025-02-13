@@ -144,11 +144,15 @@ const Dashboard = () => {
       doc.text("Business Information", 20, 20);
       doc.setFontSize(12);
       doc.text(`Company Name: ${businessData?.companyName || 'N/A'}`, 30, 30);
-      doc.text(`Business Type: ${businessData?.businessType || 'N/A'}`, 30, 40);
-      doc.text(`Registration Number: ${businessData?.registrationNumber || 'N/A'}`, 30, 50);
-      doc.text(`Authorized Person Name: ${businessData?.authorizedPersonName || 'N/A'}`, 30, 60);
-      doc.text(`Authorized Person Email: ${businessData?.authorizedPersonEmail || 'N/A'}`, 30, 70);
-      doc.text(`Authorized Person Phone: ${businessData?.authorizedPersonPhone || 'N/A'}`, 30, 80);
+      doc.text(`Business Type: ${businessData?.companyNameType || 'N/A'}`, 30, 40);
+      doc.text(`Company Address: ${businessData?.companyAddress || 'N/A'}`, 30, 50);
+      doc.text(`Company Province: ${businessData?.companyProvince || 'N/A'}`, 30, 60);
+      doc.text(`Company District: ${businessData?.companyDistrict || 'N/A'}`, 30, 70);
+      doc.text(`Company Divisional Office: ${businessData?.companyDivisionalOffice || 'N/A'}`, 30, 80);
+      doc.text(`Company GN Division: ${businessData?.companyGNDivision || 'N/A'}`, 30, 90);
+      doc.text(`Company Postal Code: ${businessData?.companyPostalCode || 'N/A'}`, 30, 100);
+      doc.text(`Company Email: ${businessData?.companyEmail || 'N/A'}`, 30, 110);
+      doc.text(`Business Description: ${businessData?.businessDescription || 'N/A'}`, 30, 120);
 
       // Director Information
       doc.addPage();

@@ -442,7 +442,6 @@ const CorporateBusinessForm = () => {
                 onChange={(e) => handleDirectorChange(e, index)}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].title}
-                required
               >
                 <option value="">Select Title</option>
                 <option>Mr.</option>
@@ -475,7 +474,6 @@ const CorporateBusinessForm = () => {
                 onChange={(e) => handleDirectorChange(e, index)}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].fullName}
-                required
               />
             </div>
 
@@ -524,7 +522,6 @@ const CorporateBusinessForm = () => {
                 onChange={(e) => handleDirectorChange(e, index)}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].province}
-                required
               />
             </div>
 
@@ -549,7 +546,6 @@ const CorporateBusinessForm = () => {
                 onChange={(e) => handleDirectorChange(e, index)}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].district}
-                required
               />
             </div>
 
@@ -574,7 +570,6 @@ const CorporateBusinessForm = () => {
                 onChange={(e) => handleDirectorChange(e, index)}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].division}
-                required
               />
             </div>
 
@@ -599,7 +594,6 @@ const CorporateBusinessForm = () => {
                 onChange={(e) => handleDirectorChange(e, index)}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].address1}
-                required
               />
             </div>
 
@@ -648,7 +642,6 @@ const CorporateBusinessForm = () => {
                 onChange={(e) => handleDirectorChange(e, index)}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].postCode}
-                required
               />
             </div>
 
@@ -697,7 +690,6 @@ const CorporateBusinessForm = () => {
                 onChange={(e) => handleDirectorChange(e, index)}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].mobile}
-                required
               />
             </div>
 
@@ -722,7 +714,6 @@ const CorporateBusinessForm = () => {
                 onChange={(e) => handleDirectorChange(e, index)}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].email}
-                required
               />
             </div>
 
@@ -747,7 +738,6 @@ const CorporateBusinessForm = () => {
                 onChange={(e) => handleDirectorChange(e, index)}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].occupation}
-                required
               />
             </div>
 
@@ -772,7 +762,7 @@ const CorporateBusinessForm = () => {
                   onChange={(e) => handleFileChange(e, index, 'nicFront')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].nicFront}
-                  required
+                  required={director.nicFront ? false : true}
                 />
                 <button
                   className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
@@ -807,7 +797,7 @@ const CorporateBusinessForm = () => {
                   onChange={(e) => handleFileChange(e, index, 'nicBack')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].nicBack}
-                  required
+                  required={director.nicBack ? false : true}
                 />
                 <button
                   className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
@@ -842,7 +832,7 @@ const CorporateBusinessForm = () => {
                   onChange={(e) => handleFileChange(e, index, 'signature')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].signature}
-                  required
+                  required={director.signature ? false : true}
                 />
                 <button
                   className="bg-blue-500 text-white px-3 rounded py-4 ms-2"

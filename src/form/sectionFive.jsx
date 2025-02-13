@@ -355,7 +355,7 @@ const PaymentForm = () => {
                 onChange={handleFileChange}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues.paymentSlip}
-                required
+                required={formData.paymentSlip ? false : true}
               />
               <button
                 className="bg-blue-500 text-white px-3 rounded py-4 ms-2"

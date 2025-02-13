@@ -777,7 +777,7 @@ const ShareholderForm = () => {
                   onChange={(e) => handleFileChange(e, index, 'nicFront')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].nicFront}
-                  required
+                  required={shareholder.nicFront ? false : true}
                 />
                 <button
                   className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
@@ -812,7 +812,7 @@ const ShareholderForm = () => {
                   onChange={(e) => handleFileChange(e, index, 'nicBack')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].nicBack}
-                  required
+                  required={shareholder.nicBack ? false : true}
                 />
                 <button
                   className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
@@ -847,7 +847,7 @@ const ShareholderForm = () => {
                   onChange={(e) => handleFileChange(e, index, 'signature')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].signature}
-                  required
+                  required={shareholder.signature ? false : true}
                 />
                 <button
                   className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
