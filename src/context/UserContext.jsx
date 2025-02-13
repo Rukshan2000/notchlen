@@ -60,7 +60,9 @@ const initialState = {
     },
     status: '',
     userId: null,
-    createdAt: null
+    createdAt: null,
+    termsAccepted: false,
+    termsAcceptedAt: null
   },
 };
 
@@ -118,7 +120,9 @@ const userReducer = (state, action) => {
           paymentSlip: action.payload.paymentSlip ? {
             url: action.payload.paymentSlip.url,
             path: action.payload.paymentSlip.path
-          } : null
+          } : null,
+          termsAccepted: action.payload.termsAccepted || false,
+          termsAcceptedAt: action.payload.termsAcceptedAt || null
         }
       };
 

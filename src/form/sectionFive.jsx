@@ -57,16 +57,15 @@ const PaymentForm = () => {
     fetchPaymentData(userId, dispatch).then(paymentData => {
       if (paymentData?.paymentSlip) {
         setFormData({
-          paymentSlip: paymentData.paymentSlip,
-          paymentSlipPreview: paymentData.paymentSlip.url
+          paymentSlip: paymentData.paymentSlip || null,
+          paymentSlipPreview: paymentData.paymentSlip?.url || null
         });
         setCheckboxValues({
           paymentSlip: state.user.role === 'admin' ? false : true,
         });
+        setTermsAccepted(paymentData.termsAccepted || false);
       }
     });
-
-
   }, [state.user, userIdFromAdmin, dispatch]);
 
   const handleChange = (e) => {
@@ -252,7 +251,9 @@ const PaymentForm = () => {
         payload: {
           paymentSlip,
           status: formDataToSave.status,
-          userId: formDataToSave.userId
+          userId: formDataToSave.userId,
+          termsAccepted: termsAccepted,
+          termsAcceptedAt: serverTimestamp()
         }
       });
 
@@ -386,7 +387,7 @@ const PaymentForm = () => {
             >
               Terms and Conditions.
             </a>
-            
+
           </p>
         </div>
 
