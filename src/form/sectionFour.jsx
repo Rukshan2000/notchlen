@@ -366,6 +366,16 @@ const ShareholderForm = () => {
     setCheckboxValues(newCheckboxValues);
   };
 
+  const handleDeleteShareholder = (index) => {
+    const newShareholders = [...shareholders];
+    newShareholders.splice(index, 1);
+    setShareholders(newShareholders);
+
+    const newCheckboxValues = [...checkboxValues];
+    newCheckboxValues.splice(index, 1);
+    setCheckboxValues(newCheckboxValues);
+  };
+
   return (
     <div className="p-6 mx-auto mt-12 bg-gray-100 rounded-lg shadow-lg max-w-8xl">
       <SideNav />
@@ -406,6 +416,17 @@ const ShareholderForm = () => {
 
         {shareholders.map((shareholder, index) => (
           <div key={index} className="grid grid-cols-2 gap-6 p-6 border-b border-gray-300">
+                {/* Add delete button at the top right of each shareholder section */}
+                <div className="col-span-2 flex justify-end mb-4">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteShareholder(index)}
+                    className="px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-lg"
+                  >
+                    Delete Shareholder
+                  </button>
+                </div>
+
             {/* Title */}
             <div className="mb-4">
               <div className="flex items-center mb-2">

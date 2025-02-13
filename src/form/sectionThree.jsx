@@ -357,6 +357,16 @@ const CorporateBusinessForm = () => {
     window.open(url, '_blank');
   };
 
+  const handleDeleteDirector = (index) => {
+    const newDirectors = [...directors];
+    newDirectors.splice(index, 1);
+    setDirectors(newDirectors);
+
+    const newCheckboxValues = [...checkboxValues];
+    newCheckboxValues.splice(index, 1);
+    setCheckboxValues(newCheckboxValues);
+  };
+
   console.log("checkboxValues", checkboxValues);
 
   return (
@@ -401,6 +411,17 @@ const CorporateBusinessForm = () => {
 
         {directors.map((director, index) => (
           <div key={index} className="grid grid-cols-2 gap-6 p-6 border-b border-gray-300">
+            {/* Add delete button at the top right of each director section */}
+            <div className="col-span-2 flex justify-end mb-4">
+              <button
+                type="button"
+                onClick={() => handleDeleteDirector(index)}
+                className="px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-lg"
+              >
+                Delete Director
+              </button>
+            </div>
+
             {/* Title */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
