@@ -55,48 +55,48 @@ const CorporateBusinessForm = () => {
     signature: state.user?.role === 'admin' ? false : true,
   }]);
 
-    // Auth state management useEffect
-    useEffect(() => {
-      // Check localStorage for auth data on component mount
-      const savedAuth = localStorage.getItem('authUser');
-      if (savedAuth) {
-        const authData = JSON.parse(savedAuth);
+  // Auth state management useEffect
+  useEffect(() => {
+    // Check localStorage for auth data on component mount
+    const savedAuth = localStorage.getItem('authUser');
+    if (savedAuth) {
+      const authData = JSON.parse(savedAuth);
+      dispatch({
+        type: 'SET_USER',
+        payload: authData
+      });
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Auth State Changed:', user);
+
+      if (user) {
+        // Update localStorage when auth state changes
+        const userDoc = await getUserDocumentByEmail(user.email);
+        const role = await getUserRole(userDoc.id);
+
+        const authData = {
+          email: user.email,
+          uid: user.uid,
+          role: role,
+        };
+
+        localStorage.setItem('authUser', JSON.stringify(authData));
+
         dispatch({
           type: 'SET_USER',
           payload: authData
         });
+      } else {
+        // Clear localStorage when user signs out
+        localStorage.removeItem('authUser');
+        dispatch({ type: 'CLEAR_USER' });
       }
-  
-      const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        console.log('Auth State Changed:', user);
-  
-        if (user) {
-          // Update localStorage when auth state changes
-          const userDoc = await getUserDocumentByEmail(user.email);
-          const role = await getUserRole(userDoc.id);
-  
-          const authData = {
-            email: user.email,
-            uid: user.uid,
-            role: role,
-          };
-  
-          localStorage.setItem('authUser', JSON.stringify(authData));
-  
-          dispatch({
-            type: 'SET_USER',
-            payload: authData
-          });
-        } else {
-          // Clear localStorage when user signs out
-          localStorage.removeItem('authUser');
-          dispatch({ type: 'CLEAR_USER' });
-        }
-      });
-  
-      return () => unsubscribe();
-    }, [dispatch]);
-    
+    });
+
+    return () => unsubscribe();
+  }, [dispatch]);
+
   // Fetch existing director data
   useEffect(() => {
     setUserIdFromAdmin(localStorage.getItem('applicationUserId'));
@@ -404,14 +404,15 @@ const CorporateBusinessForm = () => {
             {/* Title */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="title"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].title}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="title"
+                    className="mr-2"
+                    checked={checkboxValues[index].title}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Title</label>
               </div>
               <select
@@ -434,14 +435,15 @@ const CorporateBusinessForm = () => {
             {/* Full Name */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="fullName"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].fullName}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="fullName"
+                    className="mr-2"
+                    checked={checkboxValues[index].fullName}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Full Name</label>
               </div>
               <input
@@ -457,14 +459,15 @@ const CorporateBusinessForm = () => {
             {/* Date of Birth (Optional) */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="dob"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].dob}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="dob"
+                    className="mr-2"
+                    checked={checkboxValues[index].dob}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Date of Birth (Optional)</label>
               </div>
               <input
@@ -480,14 +483,15 @@ const CorporateBusinessForm = () => {
             {/* Province */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="province"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].province}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="province"
+                    className="mr-2"
+                    checked={checkboxValues[index].province}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Province</label>
               </div>
               <input
@@ -503,14 +507,15 @@ const CorporateBusinessForm = () => {
             {/* District */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="district"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].district}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="district"
+                    className="mr-2"
+                    checked={checkboxValues[index].district}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director District</label>
               </div>
               <input
@@ -526,14 +531,15 @@ const CorporateBusinessForm = () => {
             {/* Divisional Secretariat Division */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="division"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].division}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="division"
+                    className="mr-2"
+                    checked={checkboxValues[index].division}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Divisional Secretariat Division</label>
               </div>
               <input
@@ -549,14 +555,15 @@ const CorporateBusinessForm = () => {
             {/* Address 1 */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="address1"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].address1}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="address1"
+                    className="mr-2"
+                    checked={checkboxValues[index].address1}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Address 1</label>
               </div>
               <input
@@ -572,14 +579,15 @@ const CorporateBusinessForm = () => {
             {/* Address 2 (Optional) */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="address2"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].address2}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="address2"
+                    className="mr-2"
+                    checked={checkboxValues[index].address2}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Address 2 (Optional)</label>
               </div>
               <input
@@ -595,14 +603,15 @@ const CorporateBusinessForm = () => {
             {/* Post Code/ZIP */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="postCode"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].postCode}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="postCode"
+                    className="mr-2"
+                    checked={checkboxValues[index].postCode}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Post Code/ZIP</label>
               </div>
               <input
@@ -618,14 +627,15 @@ const CorporateBusinessForm = () => {
             {/* Residential Phone No. (Optional) */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="phone"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].phone}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="phone"
+                    className="mr-2"
+                    checked={checkboxValues[index].phone}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Residential Phone No. (Optional)</label>
               </div>
               <input
@@ -641,14 +651,15 @@ const CorporateBusinessForm = () => {
             {/* Mobile Phone No. */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="mobile"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].mobile}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="mobile"
+                    className="mr-2"
+                    checked={checkboxValues[index].mobile}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Mobile Phone No.</label>
               </div>
               <input
@@ -664,14 +675,15 @@ const CorporateBusinessForm = () => {
             {/* Email Address */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="email"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].email}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="email"
+                    className="mr-2"
+                    checked={checkboxValues[index].email}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Email Address</label>
               </div>
               <input
@@ -687,14 +699,15 @@ const CorporateBusinessForm = () => {
             {/* Occupation */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="occupation"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].occupation}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="occupation"
+                    className="mr-2"
+                    checked={checkboxValues[index].occupation}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Occupation</label>
               </div>
               <input
@@ -710,14 +723,15 @@ const CorporateBusinessForm = () => {
             {/* NIC Front Upload */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="nicFront"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].nicFront}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="nicFront"
+                    className="mr-2"
+                    checked={checkboxValues[index].nicFront}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director NIC Front</label>
               </div>
               <div className="space-y-2 flex items-center">
@@ -743,14 +757,15 @@ const CorporateBusinessForm = () => {
             {/* NIC Back Upload */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="nicBack"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].nicBack}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="nicBack"
+                    className="mr-2"
+                    checked={checkboxValues[index].nicBack}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director NIC Back</label>
               </div>
               <div className="space-y-2 flex items-center">
@@ -776,14 +791,15 @@ const CorporateBusinessForm = () => {
             {/* Signature Upload */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="signature"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].signature}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="signature"
+                    className="mr-2"
+                    checked={checkboxValues[index].signature}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Signature</label>
               </div>
               <div className="space-y-2 flex items-center">

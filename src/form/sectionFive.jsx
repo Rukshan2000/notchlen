@@ -322,14 +322,15 @@ const PaymentForm = () => {
           {/* Payment Slip Upload */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="paymentSlip"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.paymentSlip}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="paymentSlip"
+                  className="mr-2"
+                  checked={checkboxValues.paymentSlip}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Upload Payment Slip</label>
             </div>
             <div className="space-y-2 flex items-center">

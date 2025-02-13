@@ -279,14 +279,15 @@ const CorporateBusinessForm = () => {
           {/* Email */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="email"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.email}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="email"
+                  className="mr-2"
+                  checked={checkboxValues.email}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Email Address</label>
             </div>
             <input
@@ -302,14 +303,15 @@ const CorporateBusinessForm = () => {
           {/* Registration Plan */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="registrationPlan"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.registrationPlan}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="registrationPlan"
+                  className="mr-2"
+                  checked={checkboxValues.registrationPlan}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Corporate Business Registration Plans</label>
             </div>
             <select
@@ -331,14 +333,15 @@ const CorporateBusinessForm = () => {
           {/* Contact Person Title */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="contactPersonTitle"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.contactPersonTitle}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="contactPersonTitle"
+                  className="mr-2"
+                  checked={checkboxValues.contactPersonTitle}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Contact Person Title</label>
             </div>
             <select
@@ -361,14 +364,15 @@ const CorporateBusinessForm = () => {
           {/* Contact Person Name */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="contactPersonName"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.contactPersonName}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="contactPersonName"
+                  className="mr-2"
+                  checked={checkboxValues.contactPersonName}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Full Name</label>
             </div>
             <input
@@ -384,14 +388,15 @@ const CorporateBusinessForm = () => {
           {/* Contact Person Email */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="contactPersonEmail"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.contactPersonEmail}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="contactPersonEmail"
+                  className="mr-2"
+                  checked={checkboxValues.contactPersonEmail}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Contact Person's Email Address</label>
             </div>
             <div className="flex mb-3">
@@ -434,14 +439,15 @@ const CorporateBusinessForm = () => {
           {/* Contact Person Phone */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="contactPersonPhone"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.contactPersonPhone}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="contactPersonPhone"
+                  className="mr-2"
+                  checked={checkboxValues.contactPersonPhone}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Contact Person's Phone Number</label>
             </div>
             <input

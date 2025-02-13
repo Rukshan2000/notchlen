@@ -107,7 +107,7 @@ const CorporateBusinessForm = () => {
     if (state.user?.role === 'user') {
       setUserRole('user');
     }
- 
+
 
   }, [state.user, userIdFromAdmin, dispatch]);
 
@@ -226,14 +226,15 @@ const CorporateBusinessForm = () => {
           {/* Company Name */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="companyName"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.companyName}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="companyName"
+                  className="mr-2"
+                  checked={checkboxValues.companyName}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Company Name</label>
             </div>
             <input
@@ -249,14 +250,15 @@ const CorporateBusinessForm = () => {
           {/* Business Type */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="businessType"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.businessType}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="businessType"
+                  className="mr-2"
+                  checked={checkboxValues.businessType}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Business Type</label>
             </div>
             <select
@@ -277,14 +279,15 @@ const CorporateBusinessForm = () => {
           {/* Registration Number */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="registrationNumber"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.registrationNumber}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="registrationNumber"
+                  className="mr-2"
+                  checked={checkboxValues.registrationNumber}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Registration Number</label>
             </div>
             <input
@@ -300,14 +303,15 @@ const CorporateBusinessForm = () => {
           {/* Authorized Person Name */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="authorizedPersonName"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.authorizedPersonName}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="authorizedPersonName"
+                  className="mr-2"
+                  checked={checkboxValues.authorizedPersonName}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Authorized Person Name</label>
             </div>
             <input
@@ -323,14 +327,15 @@ const CorporateBusinessForm = () => {
           {/* Authorized Person Email */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="authorizedPersonEmail"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.authorizedPersonEmail}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="authorizedPersonEmail"
+                  className="mr-2"
+                  checked={checkboxValues.authorizedPersonEmail}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Authorized Person Email</label>
             </div>
             <div className="flex items-center gap-2">
@@ -350,14 +355,15 @@ const CorporateBusinessForm = () => {
           {/* Authorized Person Phone */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="authorizedPersonPhone"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.authorizedPersonPhone}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="authorizedPersonPhone"
+                  className="mr-2"
+                  checked={checkboxValues.authorizedPersonPhone}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Authorized Person Phone</label>
             </div>
             <input

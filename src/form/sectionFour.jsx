@@ -136,7 +136,7 @@ const ShareholderForm = () => {
     if (state.user?.role === 'user') {
       setUserRole('user');
     }
- 
+
 
   }, [state.user, userIdFromAdmin, dispatch]);
 
@@ -409,14 +409,15 @@ const ShareholderForm = () => {
             {/* Title */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="title"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].title}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="title"
+                    className="mr-2"
+                    checked={checkboxValues[index].title}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Shareholder Title</label>
               </div>
               <select
@@ -439,14 +440,15 @@ const ShareholderForm = () => {
             {/* Full Name */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="fullName"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].fullName}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="fullName"
+                    className="mr-2"
+                    checked={checkboxValues[index].fullName}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Shareholder Full Name</label>
               </div>
               <input
@@ -462,14 +464,15 @@ const ShareholderForm = () => {
             {/* Date of Birth */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="dob"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].dob}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="dob"
+                    className="mr-2"
+                    checked={checkboxValues[index].dob}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Shareholder Date of Birth</label>
               </div>
               <input
@@ -485,14 +488,15 @@ const ShareholderForm = () => {
             {/* Province */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="province"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].province}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="province"
+                    className="mr-2"
+                    checked={checkboxValues[index].province}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Shareholder Province</label>
               </div>
               <input
@@ -508,14 +512,15 @@ const ShareholderForm = () => {
             {/* District */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="district"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].district}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="district"
+                    className="mr-2"
+                    checked={checkboxValues[index].district}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Shareholder District</label>
               </div>
               <input
@@ -531,14 +536,15 @@ const ShareholderForm = () => {
             {/* Division */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="division"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].division}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="division"
+                    className="mr-2"
+                    checked={checkboxValues[index].division}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Divisional Secretariat Division</label>
               </div>
               <input
@@ -554,14 +560,15 @@ const ShareholderForm = () => {
             {/* Address 1 */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="address1"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].address1}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="address1"
+                    className="mr-2"
+                    checked={checkboxValues[index].address1}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Shareholder Address 1</label>
               </div>
               <input
@@ -577,14 +584,15 @@ const ShareholderForm = () => {
             {/* Address 2 */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="address2"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].address2}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="address2"
+                    className="mr-2"
+                    checked={checkboxValues[index].address2}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Shareholder Address Line 2 (Optional)</label>
               </div>
               <input
@@ -600,14 +608,15 @@ const ShareholderForm = () => {
             {/* Post Code */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="postCode"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].postCode}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="postCode"
+                    className="mr-2"
+                    checked={checkboxValues[index].postCode}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Shareholder Postal Code</label>
               </div>
               <input
@@ -623,14 +632,15 @@ const ShareholderForm = () => {
             {/* Phone */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="phone"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].phone}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="phone"
+                    className="mr-2"
+                    checked={checkboxValues[index].phone}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Shareholder Residential Phone No. (Optional)</label>
               </div>
               <input
@@ -646,14 +656,15 @@ const ShareholderForm = () => {
             {/* Mobile */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="mobile"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].mobile}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="mobile"
+                    className="mr-2"
+                    checked={checkboxValues[index].mobile}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Shareholder Mobile Phone No.</label>
               </div>
               <input
@@ -669,14 +680,15 @@ const ShareholderForm = () => {
             {/* Email */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="email"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].email}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="email"
+                    className="mr-2"
+                    checked={checkboxValues[index].email}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Shareholder Email Address</label>
               </div>
               <input
@@ -692,14 +704,15 @@ const ShareholderForm = () => {
             {/* Shares */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="shares"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].shares}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="shares"
+                    className="mr-2"
+                    checked={checkboxValues[index].shares}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">No. of Shares to be Held</label>
               </div>
               <input
@@ -715,14 +728,15 @@ const ShareholderForm = () => {
             {/* NIC Front Upload */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="nicFront"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].nicFront}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="nicFront"
+                    className="mr-2"
+                    checked={checkboxValues[index].nicFront}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Upload NIC Front</label>
               </div>
               <div className="space-y-2 flex items-center">
@@ -748,14 +762,15 @@ const ShareholderForm = () => {
             {/* NIC Back Upload */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="nicBack"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].nicBack}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="nicBack"
+                    className="mr-2"
+                    checked={checkboxValues[index].nicBack}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Upload NIC Back</label>
               </div>
               <div className="space-y-2 flex items-center">
@@ -781,14 +796,15 @@ const ShareholderForm = () => {
             {/* Signature Upload */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="signature"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].signature}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="signature"
+                    className="mr-2"
+                    checked={checkboxValues[index].signature}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Upload Signature</label>
               </div>
               <div className="space-y-2 flex items-center">
