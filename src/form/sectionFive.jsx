@@ -355,6 +355,7 @@ const PaymentForm = () => {
                 onChange={handleFileChange}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues.paymentSlip}
+                required
               />
               <button
                 className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
@@ -376,6 +377,7 @@ const PaymentForm = () => {
             checked={termsAccepted}
             onChange={handleTermsChange}
             className="mr-2"
+            required
           />
           <p className="text-black">
             * I have read and agree to the &nbsp;

@@ -244,6 +244,7 @@ const CorporateBusinessForm = () => {
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
               disabled={!checkboxValues.companyName}
+              required
             />
           </div>
 
@@ -267,6 +268,7 @@ const CorporateBusinessForm = () => {
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
               disabled={!checkboxValues.businessType}
+              required
             >
               <option value="">Select Business Type</option>
               <option value="Sole Proprietorship">Sole Proprietorship</option>
@@ -297,6 +299,7 @@ const CorporateBusinessForm = () => {
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
               disabled={!checkboxValues.registrationNumber}
+              required
             />
           </div>
 
@@ -321,6 +324,7 @@ const CorporateBusinessForm = () => {
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
               disabled={!checkboxValues.authorizedPersonName}
+              required
             />
           </div>
 
@@ -347,6 +351,7 @@ const CorporateBusinessForm = () => {
                   onChange={handleChange}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues.authorizedPersonEmail}
+                  required
                 />
               </div>
             </div>
@@ -373,6 +378,7 @@ const CorporateBusinessForm = () => {
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
               disabled={!checkboxValues.authorizedPersonPhone}
+              required
             />
           </div>
         </div>

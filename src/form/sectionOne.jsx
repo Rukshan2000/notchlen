@@ -297,6 +297,7 @@ const CorporateBusinessForm = () => {
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
               disabled={!checkboxValues.email}
+              required
             />
           </div>
 
@@ -320,6 +321,7 @@ const CorporateBusinessForm = () => {
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
               disabled={!checkboxValues.registrationPlan}
+              required
             >
               <option value="">Select Registration Plan</option>
               <option value="Startup 20000/= (PRIVATE LIMITED)">Startup 20000/= (PRIVATE LIMITED)</option>
@@ -350,6 +352,7 @@ const CorporateBusinessForm = () => {
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
               disabled={!checkboxValues.contactPersonTitle}
+              required
             >
               <option value="">Select Title</option>
               <option>Mr</option>
@@ -382,6 +385,7 @@ const CorporateBusinessForm = () => {
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
               disabled={!checkboxValues.contactPersonName}
+              required
             />
           </div>
 
@@ -407,6 +411,7 @@ const CorporateBusinessForm = () => {
                 onChange={handleChange}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues.contactPersonEmail}
+                required
               />
               <button
                 type="button"
@@ -457,6 +462,7 @@ const CorporateBusinessForm = () => {
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
               disabled={!checkboxValues.contactPersonPhone}
+              required
             />
           </div>
 
@@ -485,10 +491,10 @@ const CorporateBusinessForm = () => {
             </button>
           </div>
         </div>
-      <div className="mt-4">
-        <hr className="mb-8 border-gray-300" />
-        <p className="my-4 text-center text-black">By accessing or using the Services, you agree to be bound by these Terms as if signed by you.</p>
-      </div>
+        <div className="mt-4">
+          <hr className="mb-8 border-gray-300" />
+          <p className="my-4 text-center text-black">By accessing or using the Services, you agree to be bound by these Terms as if signed by you.</p>
+        </div>
       </form>
     </div>
   );
