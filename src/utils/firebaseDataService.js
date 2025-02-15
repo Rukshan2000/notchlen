@@ -51,6 +51,17 @@ const getContactData = async (userId) => {
     }
 };
 
+const getVarifyData = async (userId) => {
+    try {
+        const varifyRef = collection(db, 'varify');
+        const snapshot = await getDocs(query(varifyRef, where('userId', '==', userId)));
+        return snapshot.docs[0]?.data() || null;
+    } catch (error) {
+        console.error('Error fetching varify data:', error);
+        throw error;
+    }
+};
+
 const getBusinessData = async (userId) => {
     try {
         const businessRef = collection(db, 'business');
@@ -98,6 +109,7 @@ const getPaymentData = async (userId) => {
 export {
     getApplicationData,
     getContactData,
+    getVarifyData,
     getBusinessData,
     getDirectorData,
     getShareholderData,

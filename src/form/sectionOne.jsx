@@ -13,6 +13,7 @@ import { updateOverallStatus } from '../utils/statusUpdateUtils';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
+import { getContactData, getVarifyData } from '../utils/firebaseDataService';
 
 const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
@@ -24,6 +25,9 @@ const CorporateBusinessForm = () => {
   const userIdFromAdmin = localStorage.getItem('applicationUserId');
   console.log("userIdFromAdmin from section one", userIdFromAdmin);
   const [otp, setOtp] = useState('');
+  const [otpEmailSent, setOtpEmailSent] = useState(false);
+  const [otpEmailVerified, setOtpEmailVerified] = useState(false);
+  const [otpError, setOtpError] = useState('');
 
   const [formData, setFormData] = useState({
     email: '',
@@ -31,7 +35,8 @@ const CorporateBusinessForm = () => {
     contactPersonTitle: '',
     contactPersonName: '',
     contactPersonEmail: '',
-    contactPersonPhone: ''
+    contactPersonPhone: '',
+    otpEmailByUser: ''
   });
 
   const [checkboxValues, setCheckboxValues] = useState({
@@ -84,8 +89,9 @@ const CorporateBusinessForm = () => {
     return () => unsubscribe();
   }, [dispatch]);
 
-  useEffect(() => {
 
+
+  useEffect(() => {
     const userId = state.user.role === 'admin' ? userIdFromAdmin : state.user.uid;
     console.log("userId from useEffect", userId);
 
@@ -115,9 +121,20 @@ const CorporateBusinessForm = () => {
     if (state.user.role === 'user') {
       setUserRole('user');
     }
-
-
   }, [state.user, userIdFromAdmin, dispatch]);
+
+  useEffect(() => {
+    const checkVerification = async () => {
+      const varifyData = await getVarifyData(state.user.uid);
+      if (varifyData.contactPersonEmailVarified === formData.contactPersonEmail) {
+        setOtpEmailVerified(true);
+      } else {
+        setOtpEmailVerified(false);
+      }
+    };
+
+    checkVerification();
+  }, [state.user, formData.contactPersonEmail]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -260,6 +277,7 @@ const CorporateBusinessForm = () => {
         throw new Error('Failed to send email');
       }
 
+      setOtpEmailSent(true);
       alert('OTP sent successfully!');
     } catch (error) {
       console.error('Error sending OTP:', error);
@@ -268,8 +286,30 @@ const CorporateBusinessForm = () => {
   };
 
 
-  const handleVarify = () => {
-    console.log("Email otp clicked");
+  const handleEmailVarify = async () => { 
+    if (formData.otpEmailByUser === otp) {
+      const varifyData = await getVarifyData(state.user.uid);
+      if (!varifyData) {
+        await addDoc(collection(db, 'varify'), {
+          userId: state.user.uid,
+          contactPersonEmailVarified: formData.contactPersonEmail,
+          createdAt: serverTimestamp()
+        });
+        console.log("varifyData for email added successfully");
+      } else {
+        await updateDoc(doc(db, 'varify', varifyData.id), {
+          contactPersonEmailVarified: formData.contactPersonEmail,
+          createdAt: serverTimestamp()
+        });
+        console.log("varifyData for email updated successfully");
+      }
+      setOtpEmailVerified(true);
+      setOtpEmailSent(false);
+      setOtpError('');
+    } else {
+      setOtpError('Invalid OTP. Please try again.');
+    }
+
   };
 
   return (
@@ -453,29 +493,32 @@ const CorporateBusinessForm = () => {
               <button
                 type="button"
                 onClick={handleEmailVarification}
-                className="ms-2 px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
+                className="ms-2 px-5 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
               >
-                Send
+                {otpEmailVerified ? 'Varified' : 'OTP'}
               </button>
             </div>
-            <div className="flex">
-              <input
-                type="email"
-                placeholder="Enter OTP"
-                name="contactPersonEmailVarified"
-                value={formData.contactPersonEmailVarified}
-                onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
 
-              />
-              <button
-                type="button"
-                onClick={handleVarify}
-                className="ms-2 px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
-              >
-                Verify
-              </button>
-            </div>
+            {otpEmailSent && (
+              <div className="flex">
+                <input
+                  type="email"
+                  placeholder="Enter OTP"
+                  name="otpEmailByUser"
+                  value={formData.otpEmailByUser}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={handleEmailVarify}
+                  className="ms-2 px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
+                >
+                  Verify
+                </button>
+              </div>
+            )}
+
           </div>
 
           {/* Contact Person Phone */}
@@ -518,6 +561,7 @@ const CorporateBusinessForm = () => {
           </div>
 
         </div>
+        {otpError && <p className="mt-2 text-red-500 text-sm text-center">{otpError}</p>}
         <div className="flex justify-end mt-6">
           {/* <button
             type="button"
