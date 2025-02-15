@@ -10,6 +10,7 @@ import { fetchPaymentData, savePaymentData } from '../utils/dashboardUtils';
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
 import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
 import axios from 'axios';
+import { getBusinessData, getContactData } from '../utils/firebaseDataService';
 
 
 const PaymentForm = () => {
@@ -195,10 +196,13 @@ const PaymentForm = () => {
   };
 
   const sendSubmitEmail = async () => {
-    const companyName = state.companyInformation?.companyName || "Keells"; //TODO: get from state
-    const contactPersonName = state.companyInformation?.contactPersonName || "john doe"; //TODO: get from state
-    const contactPersonEmail = state.companyInformation?.contactPersonEmail || "john@gmail.com"; //TODO: get from state
-    const contactPersonPhone = state.companyInformation?.contactPersonPhone || "0777777777"; //TODO: get from state
+    const contactData = await getContactData(userId); 
+    const businessData = await getBusinessData(userId);
+    const companyName = businessData?.companyName || "xxxxx"; 
+    const contactPersonName = contactData?.contactPersonName || "xxxx xxxx";
+    const contactPersonEmail = contactData?.contactPersonEmail || "xxx@xxx.com";
+    const contactPersonPhone = contactData?.contactPersonPhone || "0777777777";
+
     const submissionDate = new Date().toLocaleDateString();
     try {
       const emailContent = {
