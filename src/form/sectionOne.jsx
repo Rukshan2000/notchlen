@@ -456,13 +456,27 @@ const CorporateBusinessForm = () => {
               <label className="block font-medium">Contact Person's Phone Number</label>
             </div>
             <input
-              type="text"
+              type="tel"
               name="contactPersonPhone"
               value={formData.contactPersonPhone}
-              onChange={handleChange}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Only allow numbers and ensure starts with 0
+                if (
+                  (/^\d*$/.test(value) || value === '') && // Only numbers
+                  (value.length === 0 || value[0] === '0') && // Must start with 0
+                  value.length <= 10 // Max 10 digits
+                ) {
+                  handleChange(e);
+                }
+              }}
+              pattern="0[0-9]{9}"
+              maxLength="10"
+              placeholder="0XXXXXXXXX"
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
               disabled={!checkboxValues.contactPersonPhone}
               required
+              title="Phone number must start with 0 and be 10 digits long"
             />
           </div>
 

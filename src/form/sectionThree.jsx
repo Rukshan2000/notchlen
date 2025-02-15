@@ -645,7 +645,7 @@ const CorporateBusinessForm = () => {
               />
             </div>
 
-            {/* Residential Phone No. (Optional) */}
+            {/* Phone Number */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
                 {userRole !== 'user' && (
@@ -657,19 +657,33 @@ const CorporateBusinessForm = () => {
                     onChange={(e) => handleCheckboxChange(e, index)}
                   />
                 )}
-                <label className="block font-medium">Director Residential Phone No. (Optional)</label>
+                <label className="block font-medium">Phone Number</label>
               </div>
               <input
-                type="text"
+                type="tel"
                 name="phone"
                 value={director.phone}
-                onChange={(e) => handleDirectorChange(e, index)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (
+                    (/^\d*$/.test(value) || value === '') &&
+                    (value.length === 0 || value[0] === '0') &&
+                    value.length <= 10
+                  ) {
+                    handleDirectorChange(e, index);
+                  }
+                }}
+                pattern="0[0-9]{9}"
+                maxLength="10"
+                placeholder="0XXXXXXXXX"
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].phone}
+                required
+                title="Phone number must start with 0 and be 10 digits long"
               />
             </div>
 
-            {/* Mobile Phone No. */}
+            {/* Mobile Number */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
                 {userRole !== 'user' && (
@@ -681,15 +695,29 @@ const CorporateBusinessForm = () => {
                     onChange={(e) => handleCheckboxChange(e, index)}
                   />
                 )}
-                <label className="block font-medium">Director Mobile Phone No.</label>
+                <label className="block font-medium">Mobile Number</label>
               </div>
               <input
-                type="text"
+                type="tel"
                 name="mobile"
                 value={director.mobile}
-                onChange={(e) => handleDirectorChange(e, index)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (
+                    (/^\d*$/.test(value) || value === '') &&
+                    (value.length === 0 || value[0] === '0') &&
+                    value.length <= 10
+                  ) {
+                    handleDirectorChange(e, index);
+                  }
+                }}
+                pattern="0[0-9]{9}"
+                maxLength="10"
+                placeholder="0XXXXXXXXX"
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].mobile}
+                required
+                title="Phone number must start with 0 and be 10 digits long"
               />
             </div>
 
