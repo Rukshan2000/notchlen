@@ -194,6 +194,96 @@ const PaymentForm = () => {
     }
   };
 
+  const sendSubmitEmail = async () => {
+    const companyName = state.companyInformation?.companyName || "Keells"; //TODO: get from state
+    const contactPersonName = state.companyInformation?.contactPersonName || "john doe"; //TODO: get from state
+    const contactPersonEmail = state.companyInformation?.contactPersonEmail || "john@gmail.com"; //TODO: get from state
+    const contactPersonPhone = state.companyInformation?.contactPersonPhone || "0777777777"; //TODO: get from state
+    const submissionDate = new Date().toLocaleDateString();
+    try {
+      const emailContent = {
+        to: 'nisaldayan@gmail.com', // Replace with actual admin email
+        message: {
+          subject: 'NOTCHLN - New Application Submission',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #4A90E2; font-size: 30px; font-weight: bold; margin: 0;">NOTCHLN</h1>
+              </div>
+              
+              <div style="background-color: #f8f9fa; border-radius: 10px; padding: 30px; margin-bottom: 20px;">
+                <h2 style="color: #333; font-size: 24px; margin-bottom: 20px; text-align: center;">New Application Submission</h2>
+                
+                <p style="color: #555; font-size: 16px; line-height: 1.5; margin-bottom: 20px; text-align: center;">
+                  A new application has been submitted for review.
+                </p>
+                
+                <div style="background-color: #fff; padding: 20px; border-radius: 5px; margin: 25px 0;">
+                  <h3 style="color: #333; font-size: 18px; margin-bottom: 15px;">Applicant Details:</h3>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td style="padding: 8px 0; color: #555; width: 40%;">Company Name:</td>
+                      <td style="padding: 8px 0; color: #333;">${companyName}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #555; width: 40%;">Contact Person:</td>
+                      <td style="padding: 8px 0; color: #333;">${contactPersonName}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #555;">Email:</td>
+                      <td style="padding: 8px 0; color: #333;">${contactPersonEmail}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #555;">Phone:</td>
+                      <td style="padding: 8px 0; color: #333;">${contactPersonPhone}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #555;">Submission Date:</td>
+                      <td style="padding: 8px 0; color: #333;">${submissionDate}</td>
+                    </tr>
+                  </table>
+                </div>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                  <a href="https://notchln.com/admin/dashboard" 
+                     style="background-color: #4A90E2; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                    View Application
+                  </a>
+                </div>
+              </div>
+              
+              <div style="color: #777; font-size: 12px; text-align: center; margin-top: 20px;">
+                <p>This is an automated notification from the NOTCHLN application system.</p>
+              </div>
+              
+              <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
+                <p style="color: #777; font-size: 12px;">
+                  © ${new Date().getFullYear()} NOTCHLN. All rights reserved.
+                </p>
+              </div>
+            </div>
+          `
+        }
+      };
+
+      const response = await fetch('https://us-central1-e-corporate.cloudfunctions.net/sendEmail', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailContent)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send email');
+      }
+
+      console.log('Submission notification sent to admin successfully');
+    } catch (error) {
+      console.error('Error sending submission notification:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -242,6 +332,7 @@ const PaymentForm = () => {
         console.log('Payment information updated successfully!');
       } else {
         await addDoc(paymentsRef, formDataToSave);
+        await sendSubmitEmail();
         console.log('Payment information saved successfully!');
       }
 
@@ -263,6 +354,8 @@ const PaymentForm = () => {
           paymentSlip: true
         });
       }
+
+   
 
       navigate('/dashboard');
 
