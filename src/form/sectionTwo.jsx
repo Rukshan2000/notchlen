@@ -10,6 +10,7 @@ import { getUserDocumentByEmail, getUserRole } from '../firestore';
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { getStorage } from 'firebase/storage';
+import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
 
 
 const CorporateBusinessForm = () => {
@@ -245,6 +246,11 @@ const CorporateBusinessForm = () => {
         const docRef = doc(db, 'business', querySnapshot.docs[0].id);
         await updateDoc(docRef, dataToUpdate);
         await updateOverallStatus(userId, state, dispatch);
+        if (userRole !== 'user') {
+          await sendUpdateEmailToUser(userId);
+        } else {
+          await sendUpdateEmailToAdmin(userId);
+        }
         console.log('Business information updated successfully!');
       } else {
         await addDoc(businessRef, dataToAdd);

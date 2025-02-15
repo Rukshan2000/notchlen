@@ -8,7 +8,7 @@ import SideNav from "../components/TopNav"; // Importing the TopNav component
 import { getStorage } from 'firebase/storage';
 import { fetchPaymentData, savePaymentData } from '../utils/dashboardUtils';
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
-
+import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
 import axios from 'axios';
 
 
@@ -202,7 +202,7 @@ const PaymentForm = () => {
     const submissionDate = new Date().toLocaleDateString();
     try {
       const emailContent = {
-        to: 'nisaldayan@gmail.com', // Replace with actual admin email
+        to: 'nisaldayan@gmail.com', //admin email
         message: {
           subject: 'NOTCHLN - New Application Submission',
           html: `
@@ -328,7 +328,11 @@ const PaymentForm = () => {
         const docRef = doc(db, 'payments', querySnapshot.docs[0].id);
         await updateDoc(docRef, formDataToSave);
         await updateOverallStatus(userId, state, dispatch);
-
+        if (userRole !== 'user') {
+          await sendUpdateEmailToUser(userId);
+        } else {
+          await sendUpdateEmailToAdmin(userId);
+        }
         console.log('Payment information updated successfully!');
       } else {
         await addDoc(paymentsRef, formDataToSave);

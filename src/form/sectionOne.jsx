@@ -12,6 +12,7 @@ import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/aut
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
+import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
 
 const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
@@ -166,6 +167,13 @@ const CorporateBusinessForm = () => {
         const docRef = doc(db, 'contacts', querySnapshot.docs[0].id);
         await updateDoc(docRef, dataToUpdate);
         await updateOverallStatus(state.companyInformation.userId, state, dispatch);
+
+        if (userRole !== 'user') {
+          await sendUpdateEmailToUser(state.companyInformation.userId);
+        } else {
+          await sendUpdateEmailToAdmin(state.companyInformation.userId);
+        }
+
         console.log('Contact updated successfully!');
       } else {
         await addDoc(collection(db, 'contacts'), dataToAdd);
@@ -176,7 +184,7 @@ const CorporateBusinessForm = () => {
       navigate('/section-two', { state: { userId: userIdFromAdmin } });
 
     } catch (error) {
-      console.error('Error handling document: ', error);
+      console.error('Error:', error);
       console.log('Error saving contact. Please try again.');
     }
   };
@@ -194,7 +202,7 @@ const CorporateBusinessForm = () => {
     return otp;
   };
 
-  const handleEmailSend = async () => {
+  const handleEmailVarification = async () => {
     const otp = generateOtp();
     console.log("otp is", otp);
 
@@ -259,7 +267,8 @@ const CorporateBusinessForm = () => {
     }
   };
 
-  const handleEmailVarify = () => {
+
+  const handleVarify = () => {
     console.log("Email otp clicked");
   };
 
@@ -443,7 +452,7 @@ const CorporateBusinessForm = () => {
               />
               <button
                 type="button"
-                onClick={handleEmailSend}
+                onClick={handleEmailVarification}
                 className="ms-2 px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
               >
                 Send
@@ -461,7 +470,7 @@ const CorporateBusinessForm = () => {
               />
               <button
                 type="button"
-                onClick={handleEmailVarify}
+                onClick={handleVarify}
                 className="ms-2 px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
               >
                 Verify

@@ -11,6 +11,7 @@ import { auth } from '../firebase';
 import { getUserDocumentByEmail, getUserRole } from '../firestore';
 import { span } from 'framer-motion/client';
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
+import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
 
 
 const ShareholderForm = () => {
@@ -318,6 +319,11 @@ const ShareholderForm = () => {
         const docRef = doc(db, 'shareholders', querySnapshot.docs[0].id);
         await updateDoc(docRef, formData);
         await updateOverallStatus(state.shareHolderInformation.userId, state, dispatch);
+        if (userRole !== 'user') {
+          await sendUpdateEmailToUser(state.shareHolderInformation.userId);
+        } else {
+          await sendUpdateEmailToAdmin(state.shareHolderInformation.userId);
+        }
         console.log('Shareholder information updated successfully!');
       } else {
         await addDoc(shareholdersRef, formData);

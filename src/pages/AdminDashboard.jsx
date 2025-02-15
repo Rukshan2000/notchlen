@@ -14,6 +14,7 @@ import { getStorage, ref, deleteObject, listAll } from 'firebase/storage';
 import { jsPDF } from "jspdf";
 import { getUserDocumentByEmail, getUserRole } from '../firestore';
 import { fetchContactData, fetchBusinessData, fetchDirectorData, fetchShareholderData, fetchPaymentData } from "../utils/dashboardUtils";
+import { getApplicationData } from '../utils/firebaseDataService';
 
 
 const Dashboard = () => {
@@ -92,34 +93,14 @@ const Dashboard = () => {
   const handleDownloadPDF = async (userId) => {
     console.log("Starting PDF generation for userId:", userId);
     try {
-      // Get references to all collections
-      const contactsRef = collection(db, 'contacts');
-      const businessRef = collection(db, 'business');
-      const directorsRef = collection(db, 'directors');
-      const shareholdersRef = collection(db, 'shareholders');
-      const paymentsRef = collection(db, 'payments');
-
-      // Get documents for the user from each collection
-      const [
-        contactSnap,
-        businessSnap,
-        directorSnap,
-        shareholderSnap,
-        paymentSnap
-      ] = await Promise.all([
-        getDocs(query(contactsRef, where('userId', '==', userId))),
-        getDocs(query(businessRef, where('userId', '==', userId))),
-        getDocs(query(directorsRef, where('userId', '==', userId))),
-        getDocs(query(shareholdersRef, where('userId', '==', userId))),
-        getDocs(query(paymentsRef, where('userId', '==', userId)))
-      ]);
-
-      // Get data from snapshots
-      const contactData = contactSnap.docs[0]?.data();
-      const businessData = businessSnap.docs[0]?.data();
-      const directorData = directorSnap.docs[0]?.data();
-      const shareholderData = shareholderSnap.docs[0]?.data();
-      const paymentData = paymentSnap.docs[0]?.data();
+      // Get all application data
+      const {
+        contactData,
+        businessData,
+        directorData,
+        shareholderData,
+        paymentData
+      } = await getApplicationData(userId);
 
       const doc = new jsPDF();
       doc.setFontSize(20);

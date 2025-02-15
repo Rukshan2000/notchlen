@@ -8,6 +8,8 @@ import SideNav from "../components/TopNav"; // Importing the TopNav component
 import { fetchBusinessData, fetchDirectorData } from '../utils/dashboardUtils';
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
 import { onAuthStateChanged } from 'firebase/auth';
+import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
+import { getUserDocumentByEmail, getUserRole } from '../firestore';
 
 const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
@@ -302,6 +304,11 @@ const CorporateBusinessForm = () => {
         await updateDoc(docRef, formData);
         // await updateOverallStatus(formData.userId, state, dispatch);
         await updateOverallStatus(state.directorInformation.userId, state, dispatch);
+        if (userRole !== 'user') {
+          await sendUpdateEmailToUser(state.directorInformation.userId);
+        } else {
+          await sendUpdateEmailToAdmin(state.directorInformation.userId);
+        }
         console.log('Director information updated successfully!');
       } else {
         await addDoc(directorsRef, formData);
