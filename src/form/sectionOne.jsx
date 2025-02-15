@@ -191,24 +191,52 @@ const CorporateBusinessForm = () => {
     // Generate a 6-digit number between 100000 and 999999
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     setOtp(otp);
+    return otp;
   };
 
   const handleEmailSend = async () => {
-    generateOtp();
+    const otp = generateOtp();
+    console.log("otp is", otp);
 
     try {
       const emailContent = {
         to: formData.contactPersonEmail,
         message: {
-          subject: 'Email Verification OTP',
+          subject: 'NOTCHLN - Email Verification Code',
           html: `
-                    <div style="font-family: Arial, sans-serif; padding: 20px;">
-                        <h2>Email Verification</h2>
-                        <p>Your OTP for email verification is:</p>
-                        <h1 style="color: #4A90E2;">${otp}</h1>
-                        <p>This OTP will expire in 10 minutes.</p>
-                    </div>
-                `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #4A90E2; font-size: 30px; font-weight: bold; margin: 0;">NOTCHLN</h1>
+              </div>
+              
+              <div style="background-color: #f8f9fa; border-radius: 10px; padding: 30px; margin-bottom: 20px;">
+                <h2 style="color: #333; font-size: 24px; margin-bottom: 20px; text-align: center;">Email Verification</h2>
+                
+                <p style="color: #555; font-size: 16px; line-height: 1.5; margin-bottom: 20px; text-align: center;">
+                  Please use the following verification code to complete your email verification process:
+                </p>
+                
+                <div style="background-color: #fff; padding: 15px; border-radius: 5px; text-align: center; margin: 25px 0;">
+                  <h1 style="color: #4A90E2; font-size: 36px; letter-spacing: 5px; margin: 0;">${otp}</h1>
+                </div>
+                
+                <p style="color: #555; font-size: 14px; text-align: center; margin-top: 20px;">
+                  This verification code will expire in 10 minutes for security purposes.
+                </p>
+              </div>
+              
+              <div style="color: #777; font-size: 12px; text-align: center; margin-top: 20px;">
+                <p>This is an automated message, please do not reply.</p>
+                <p>If you did not request this verification code, please ignore this email.</p>
+              </div>
+              
+              <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
+                <p style="color: #777; font-size: 12px;">
+                  © ${new Date().getFullYear()} NOTCHLN. All rights reserved.
+                </p>
+              </div>
+            </div>
+          `
         }
       };
 
