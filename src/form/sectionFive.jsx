@@ -196,8 +196,8 @@ const PaymentForm = () => {
   };
 
   const sendSubmitEmail = async () => {
-    const contactData = await getContactData(userId); 
-    const businessData = await getBusinessData(userId);
+    const contactData = await getContactData(state.user.uid); 
+    const businessData = await getBusinessData(state.user.uid);
     const companyName = businessData?.companyName || "xxxxx"; 
     const contactPersonName = contactData?.contactPersonName || "xxxx xxxx";
     const contactPersonEmail = contactData?.contactPersonEmail || "xxx@xxx.com";
