@@ -350,7 +350,7 @@ const CorporateBusinessForm = () => {
               name="companyName"
               value={formData.companyName}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.companyName}
               required
             />
@@ -439,7 +439,7 @@ const CorporateBusinessForm = () => {
               name="companyAddress"
               value={formData.companyAddress}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.companyAddress}
               required
             />
@@ -464,7 +464,7 @@ const CorporateBusinessForm = () => {
               name="companyProvince"
               value={formData.companyProvince}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.companyProvince}
               required
             />
@@ -489,7 +489,7 @@ const CorporateBusinessForm = () => {
               name="companyDistrict"
               value={formData.companyDistrict}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.companyDistrict}
               required
             />
@@ -514,7 +514,7 @@ const CorporateBusinessForm = () => {
               name="companyDivisionalOffice"
               value={formData.companyDivisionalOffice}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.companyDivisionalOffice}
               required
             />
@@ -539,7 +539,7 @@ const CorporateBusinessForm = () => {
               name="companyGNDivision"
               value={formData.companyGNDivision}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.companyGNDivision}
               required
             />
@@ -564,7 +564,7 @@ const CorporateBusinessForm = () => {
               name="companyPostalCode"
               value={formData.companyPostalCode}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.companyPostalCode}
               required
             />
@@ -589,7 +589,7 @@ const CorporateBusinessForm = () => {
               name="companyEmail"
               value={formData.companyEmail}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.companyEmail}
               required
             />
@@ -613,7 +613,7 @@ const CorporateBusinessForm = () => {
               name="businessDescription"
               value={formData.businessDescription}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.businessDescription}
               required
               rows="4"

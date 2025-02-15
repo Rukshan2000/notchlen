@@ -479,8 +479,9 @@ const CorporateBusinessForm = () => {
                 name="fullName"
                 value={director.fullName}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].fullName}
+                required
               />
             </div>
 
@@ -527,8 +528,9 @@ const CorporateBusinessForm = () => {
                 name="province"
                 value={director.province}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].province}
+                required
               />
             </div>
 
@@ -551,8 +553,9 @@ const CorporateBusinessForm = () => {
                 name="district"
                 value={director.district}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].district}
+                required
               />
             </div>
 
@@ -575,8 +578,9 @@ const CorporateBusinessForm = () => {
                 name="division"
                 value={director.division}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].division}
+                required
               />
             </div>
 
@@ -599,8 +603,9 @@ const CorporateBusinessForm = () => {
                 name="address1"
                 value={director.address1}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].address1}
+                required
               />
             </div>
 
@@ -623,8 +628,9 @@ const CorporateBusinessForm = () => {
                 name="address2"
                 value={director.address2}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].address2}
+                required
               />
             </div>
 
@@ -647,8 +653,9 @@ const CorporateBusinessForm = () => {
                 name="postCode"
                 value={director.postCode}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].postCode}
+                required
               />
             </div>
 
@@ -747,8 +754,9 @@ const CorporateBusinessForm = () => {
                 name="email"
                 value={director.email}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].email}
+                required
               />
             </div>
 
@@ -771,8 +779,9 @@ const CorporateBusinessForm = () => {
                 name="occupation"
                 value={director.occupation}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].occupation}
+                required
               />
             </div>
 

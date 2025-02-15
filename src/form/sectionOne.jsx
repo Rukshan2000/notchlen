@@ -332,7 +332,7 @@ const CorporateBusinessForm = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.email}
               required
             />
@@ -360,12 +360,12 @@ const CorporateBusinessForm = () => {
               disabled={!checkboxValues.registrationPlan}
               required
             >
-              <option value="">Select Registration Plan</option>
-              <option value="Startup 20000/= (PRIVATE LIMITED)">Startup 20000/= (PRIVATE LIMITED)</option>
-              <option value="Professional 21400/= (PRIVATE LIMITED)">Professional 21400/= (PRIVATE LIMITED)</option>
-              <option value="Enterprise 35000/= (PRIVATE LIMITED)">Enterprise 35000/= (PRIVATE LIMITED)</option>
-              <option value="Export Import Combo 26400/= (PRIVATE LIMITED)">Export Import Combo 26400/= (PRIVATE LIMITED)</option>
-              <option value="Other">Other</option>
+              <option value="">SELECT REGISTRATION PLAN</option>
+              <option value="STARTUP 20000/= (PRIVATE LIMITED)">STARTUP 20000/= (PRIVATE LIMITED)</option>
+              <option value="PROFESSIONAL 21400/= (PRIVATE LIMITED)">PROFESSIONAL 21400/= (PRIVATE LIMITED)</option>
+              <option value="ENTERPRISE 35000/= (PRIVATE LIMITED)">ENTERPRISE 35000/= (PRIVATE LIMITED)</option>
+              <option value="EXPORT IMPORT COMBO 26400/= (PRIVATE LIMITED)">EXPORT IMPORT COMBO 26400/= (PRIVATE LIMITED)</option>
+              <option value="OTHER">OTHER</option>
             </select>
           </div>
 
@@ -391,13 +391,13 @@ const CorporateBusinessForm = () => {
               disabled={!checkboxValues.contactPersonTitle}
               required
             >
-              <option value="">Select Title</option>
-              <option>Mr</option>
-              <option>Mrs</option>
-              <option>Miss</option>
-              <option>Prof</option>
-              <option>Dr</option>
-              <option>Rev</option>
+              <option value="">SELECT TITLE</option>
+              <option>MR</option>
+              <option>MRS</option>
+              <option>MISS</option>
+              <option>PROF</option>
+              <option>DR</option>
+              <option>REV</option>
             </select>
           </div>
 
@@ -420,7 +420,7 @@ const CorporateBusinessForm = () => {
               name="contactPersonName"
               value={formData.contactPersonName}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.contactPersonName}
               required
             />
@@ -446,7 +446,7 @@ const CorporateBusinessForm = () => {
                 name="contactPersonEmail"
                 value={formData.contactPersonEmail}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues.contactPersonEmail}
                 required
               />
@@ -465,7 +465,7 @@ const CorporateBusinessForm = () => {
                 name="contactPersonEmailVarified"
                 value={formData.contactPersonEmailVarified}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
 
               />
               <button

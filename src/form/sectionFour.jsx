@@ -484,7 +484,7 @@ const ShareholderForm = () => {
                 name="fullName"
                 value={shareholder.fullName}
                 onChange={(e) => handleShareholderChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].fullName}
                 required
               />
@@ -533,7 +533,7 @@ const ShareholderForm = () => {
                 name="province"
                 value={shareholder.province}
                 onChange={(e) => handleShareholderChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].province}
                 required
               />
@@ -558,7 +558,7 @@ const ShareholderForm = () => {
                 name="district"
                 value={shareholder.district}
                 onChange={(e) => handleShareholderChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].district}
                 required
               />
@@ -583,7 +583,7 @@ const ShareholderForm = () => {
                 name="division"
                 value={shareholder.division}
                 onChange={(e) => handleShareholderChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].division}
                 required
               />
@@ -608,7 +608,7 @@ const ShareholderForm = () => {
                 name="address1"
                 value={shareholder.address1}
                 onChange={(e) => handleShareholderChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].address1}
                 required
               />
@@ -633,7 +633,7 @@ const ShareholderForm = () => {
                 name="address2"
                 value={shareholder.address2}
                 onChange={(e) => handleShareholderChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].address2}
               />
             </div>
@@ -657,7 +657,7 @@ const ShareholderForm = () => {
                 name="postCode"
                 value={shareholder.postCode}
                 onChange={(e) => handleShareholderChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].postCode}
                 required
               />
@@ -758,7 +758,7 @@ const ShareholderForm = () => {
                 name="email"
                 value={shareholder.email}
                 onChange={(e) => handleShareholderChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].email}
                 required
               />
