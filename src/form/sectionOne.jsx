@@ -28,6 +28,9 @@ const CorporateBusinessForm = () => {
   const [otpEmailSent, setOtpEmailSent] = useState(false);
   const [otpEmailVerified, setOtpEmailVerified] = useState(false);
   const [otpError, setOtpError] = useState('');
+  const [otpSmsSent, setOtpSmsSent] = useState(false);
+  const [otpSmsVerified, setOtpSmsVerified] = useState(false);
+  const [otpSmsError, setOtpSmsError] = useState('');
 
   const [formData, setFormData] = useState({
     email: '',
@@ -36,7 +39,8 @@ const CorporateBusinessForm = () => {
     contactPersonName: '',
     contactPersonEmail: '',
     contactPersonPhone: '',
-    otpEmailByUser: ''
+    otpEmailByUser: '',
+    otpSmsByUser: ''
   });
 
   const [checkboxValues, setCheckboxValues] = useState({
@@ -286,22 +290,26 @@ const CorporateBusinessForm = () => {
   };
 
 
-  const handleEmailVarify = async () => { 
+  const handleEmailVarify = async () => {
     if (formData.otpEmailByUser === otp) {
-      const varifyData = await getVarifyData(state.user.uid);
-      if (!varifyData) {
+      const varifyRef = collection(db, 'varify');
+      const q = query(varifyRef, where('userId', '==', state.user.uid));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const docRef = doc(db, 'varify', querySnapshot.docs[0].id);
+        await updateDoc(docRef, {
+          contactPersonEmailVarified: formData.contactPersonEmail,
+          updatedAt: serverTimestamp()
+        });
+        console.log('Varify updated successfully!');
+      } else {
         await addDoc(collection(db, 'varify'), {
           userId: state.user.uid,
           contactPersonEmailVarified: formData.contactPersonEmail,
           createdAt: serverTimestamp()
         });
-        console.log("varifyData for email added successfully");
-      } else {
-        await updateDoc(doc(db, 'varify', varifyData.id), {
-          contactPersonEmailVarified: formData.contactPersonEmail,
-          createdAt: serverTimestamp()
-        });
-        console.log("varifyData for email updated successfully");
+        console.log('Varify saved successfully!');
       }
       setOtpEmailVerified(true);
       setOtpEmailSent(false);
@@ -309,7 +317,67 @@ const CorporateBusinessForm = () => {
     } else {
       setOtpError('Invalid OTP. Please try again.');
     }
+  };
 
+  const handleSmsVarification = async () => {
+    const otp = generateOtp();
+    console.log("sms otp is", otp);
+
+    try {
+      const smsContent = {
+        to: formData.contactPersonPhone,
+        message: `Your NOTCHLN verification code is: ${otp}`
+      };
+
+      const response = await fetch('https://us-central1-e-corporate.cloudfunctions.net/sendSMS', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(smsContent)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send SMS');
+      }
+
+      setOtp(otp); // Save OTP for verification
+      setOtpSmsSent(true);
+      alert('OTP sent successfully!');
+    } catch (error) {
+      console.error('Error sending OTP:', error);
+      alert('Failed to send OTP. Please try again.');
+    }
+  };
+
+  const handleSmsVarify = async () => {
+
+    if (formData.otpSmsByUser === otp) {
+      const varifyRef = collection(db, 'varify');
+      const q = query(varifyRef, where('userId', '==', state.user.uid));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const docRef = doc(db, 'varify', querySnapshot.docs[0].id);
+        await updateDoc(docRef, {
+          contactPersonPhoneVarified: formData.contactPersonPhone,
+          updatedAt: serverTimestamp()
+        });
+        console.log('Varify updated successfully!');
+      } else {
+        await addDoc(collection(db, 'contacts'), {
+          userId: state.user.uid,
+          contactPersonPhoneVarified: formData.contactPersonPhone,
+          createdAt: serverTimestamp()
+        });
+        console.log('Varify saved successfully!');
+      }
+      setOtpSmsVerified(true);
+      setOtpSmsSent(false);
+      setOtpSmsError('');
+    } else {
+      setOtpSmsError('Invalid OTP. Please try again.');
+    }
   };
 
   return (
@@ -535,29 +603,58 @@ const CorporateBusinessForm = () => {
               )}
               <label className="block font-medium">Contact Person's Phone Number</label>
             </div>
-            <input
-              type="tel"
-              name="contactPersonPhone"
-              value={formData.contactPersonPhone}
-              onChange={(e) => {
-                const value = e.target.value;
-                // Only allow numbers and ensure starts with 0
-                if (
-                  (/^\d*$/.test(value) || value === '') && // Only numbers
-                  (value.length === 0 || value[0] === '0') && // Must start with 0
-                  value.length <= 10 // Max 10 digits
-                ) {
-                  handleChange(e);
-                }
-              }}
-              pattern="0[0-9]{9}"
-              maxLength="10"
-              placeholder="0XXXXXXXXX"
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
-              disabled={!checkboxValues.contactPersonPhone}
-              required
-              title="Phone number must start with 0 and be 10 digits long"
-            />
+            <div className="flex mb-3">
+              <input
+                type="tel"
+                name="contactPersonPhone"
+                value={formData.contactPersonPhone}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (
+                    (/^\d*$/.test(value) || value === '') &&
+                    (value.length === 0 || value[0] === '0') &&
+                    value.length <= 10
+                  ) {
+                    handleChange(e);
+                  }
+                }}
+                pattern="0[0-9]{9}"
+                maxLength="10"
+                placeholder="0XXXXXXXXX"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                disabled={!checkboxValues.contactPersonPhone}
+                required
+                title="Phone number must start with 0 and be 10 digits long"
+              />
+              <button
+                type="button"
+                onClick={handleSmsVarification}
+                className="ms-2 px-5 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
+              >
+                {otpSmsVerified ? 'Varified' : 'OTP'}
+              </button>
+            </div>
+
+            {otpSmsSent && (
+              <div className="flex">
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  name="otpSmsByUser"
+                  value={formData.otpSmsByUser}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={handleSmsVarify}
+                  className="ms-2 px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
+                >
+                  Verify
+                </button>
+              </div>
+            )}
+            {otpSmsError && <p className="mt-2 text-red-500 text-sm">{otpSmsError}</p>}
           </div>
 
         </div>

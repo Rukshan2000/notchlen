@@ -105,4 +105,37 @@ exports.sendEmail = functions.https.onRequest((request, response) => {
             });
         }
     });
+});
+
+exports.sendSMS = functions.https.onRequest((request, response) => {
+    return cors(request, response, async () => {
+        try {
+            const data = request.body;
+            const phoneNumber = data.to;
+            const apiKey = process.env.DIALOG_URL_MESSAGE_KEY; 
+            const mask = 'NOTCHLN';
+            const message = data.message;
+
+            const smsUrl = `https://e-sms.dialog.lk/api/v1/message-via-url/create/url-campaign?esmsqk=${apiKey}&list=${phoneNumber}&message=${message}`;
+            console.log("smsUrl", smsUrl);
+            const smsResponse = await fetch(smsUrl, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            // if (!smsResponse.ok) {
+            //     throw new Error('Failed to send SMS');
+            // }
+
+            response.status(200).json({ data: smsResponse });
+        } catch (error) {
+            console.error('Error sending SMS:', error);
+            response.status(500).json({
+                status: 'error',
+                message: 'Failed to send SMS'
+            });
+        }
+    });
 }); 
