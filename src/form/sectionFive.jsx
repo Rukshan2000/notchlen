@@ -13,6 +13,7 @@ import { getBusinessData, getContactData, getOnepayData } from '../utils/firebas
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth, storage } from '../firebase';
 import { getUserDocumentByEmail, getUserRole } from '../firestore';
+import { SHA256 } from 'crypto-js';
 
 
 const PaymentForm = () => {
@@ -160,7 +161,7 @@ const PaymentForm = () => {
   const handleCardPaymentChange = (e) => {
     const amount = parseFloat(e.target.value) || 0;
     const processingFee = amount * 0.03;
-    const total = amount + processingFee;
+    const total = (amount + processingFee).toFixed(2);
 
     setFormData({
       ...formData,
@@ -173,7 +174,17 @@ const PaymentForm = () => {
     // Generate a unique reference number
     const reference = `ref${new Date().getTime()}`;
     console.log("reference", reference);
-    const amount = "150";//TODO : 2 DECIMAL PLACES
+    const amount = totalAmount;
+    const currency = "LKR";
+    const appId = "CBN01190734B13223DDA9";
+    const hashSalt = "6XAN1190734B13223DDD8";
+    const hashString = appId + currency + amount + hashSalt;
+    console.log("hashString", hashString);
+    const hash = SHA256(hashString).toString();
+    console.log("hash", hash);
+
+
+
 
     const contactData = await getContactData(state.user.uid);
     // Get the cloud function URL from Firebase
@@ -182,15 +193,15 @@ const PaymentForm = () => {
 
     let data = JSON.stringify({
       "currency": "LKR",
-      "amount": amount,
-      "app_id": "CBN01190734B13223DDA9",
+      "amount": totalAmount,
+      "app_id": appId,
       "reference": reference,
       "customer_first_name": "Mr./Mrs.",
       "customer_last_name": contactData?.contactPersonName || "xxxx",
       "customer_phone_number": contactData?.contactPersonPhone || "+94777777777",
       "customer_email": contactData?.contactPersonEmail || "user@example.com",
       "transaction_redirect_url": window.location.origin + "/section-five",
-      "hash": "1ee71507ddd93f082f51740b1c0fc80298d1d99ef758d9b7132df209628c5a71",
+      "hash": hash,
       "additional_data": JSON.stringify({
         userId: state.user.uid,
         reference: reference,
