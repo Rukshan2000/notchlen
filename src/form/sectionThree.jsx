@@ -8,6 +8,8 @@ import SideNav from "../components/TopNav"; // Importing the TopNav component
 import { fetchBusinessData, fetchDirectorData } from '../utils/dashboardUtils';
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
 import { onAuthStateChanged } from 'firebase/auth';
+import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
+import { getUserDocumentByEmail, getUserRole } from '../firestore';
 
 const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
@@ -55,48 +57,48 @@ const CorporateBusinessForm = () => {
     signature: state.user?.role === 'admin' ? false : true,
   }]);
 
-    // Auth state management useEffect
-    useEffect(() => {
-      // Check localStorage for auth data on component mount
-      const savedAuth = localStorage.getItem('authUser');
-      if (savedAuth) {
-        const authData = JSON.parse(savedAuth);
+  // Auth state management useEffect
+  useEffect(() => {
+    // Check localStorage for auth data on component mount
+    const savedAuth = localStorage.getItem('authUser');
+    if (savedAuth) {
+      const authData = JSON.parse(savedAuth);
+      dispatch({
+        type: 'SET_USER',
+        payload: authData
+      });
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Auth State Changed:', user);
+
+      if (user) {
+        // Update localStorage when auth state changes
+        const userDoc = await getUserDocumentByEmail(user.email);
+        const role = await getUserRole(userDoc.id);
+
+        const authData = {
+          email: user.email,
+          uid: user.uid,
+          role: role,
+        };
+
+        localStorage.setItem('authUser', JSON.stringify(authData));
+
         dispatch({
           type: 'SET_USER',
           payload: authData
         });
+      } else {
+        // Clear localStorage when user signs out
+        localStorage.removeItem('authUser');
+        dispatch({ type: 'CLEAR_USER' });
       }
-  
-      const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        console.log('Auth State Changed:', user);
-  
-        if (user) {
-          // Update localStorage when auth state changes
-          const userDoc = await getUserDocumentByEmail(user.email);
-          const role = await getUserRole(userDoc.id);
-  
-          const authData = {
-            email: user.email,
-            uid: user.uid,
-            role: role,
-          };
-  
-          localStorage.setItem('authUser', JSON.stringify(authData));
-  
-          dispatch({
-            type: 'SET_USER',
-            payload: authData
-          });
-        } else {
-          // Clear localStorage when user signs out
-          localStorage.removeItem('authUser');
-          dispatch({ type: 'CLEAR_USER' });
-        }
-      });
-  
-      return () => unsubscribe();
-    }, [dispatch]);
-    
+    });
+
+    return () => unsubscribe();
+  }, [dispatch]);
+
   // Fetch existing director data
   useEffect(() => {
     setUserIdFromAdmin(localStorage.getItem('applicationUserId'));
@@ -302,6 +304,11 @@ const CorporateBusinessForm = () => {
         await updateDoc(docRef, formData);
         // await updateOverallStatus(formData.userId, state, dispatch);
         await updateOverallStatus(state.directorInformation.userId, state, dispatch);
+        if (userRole !== 'user') {
+          await sendUpdateEmailToUser(state.directorInformation.userId);
+        } else {
+          await sendUpdateEmailToAdmin(state.directorInformation.userId);
+        }
         console.log('Director information updated successfully!');
       } else {
         await addDoc(directorsRef, formData);
@@ -357,6 +364,16 @@ const CorporateBusinessForm = () => {
     window.open(url, '_blank');
   };
 
+  const handleDeleteDirector = (index) => {
+    const newDirectors = [...directors];
+    newDirectors.splice(index, 1);
+    setDirectors(newDirectors);
+
+    const newCheckboxValues = [...checkboxValues];
+    newCheckboxValues.splice(index, 1);
+    setCheckboxValues(newCheckboxValues);
+  };
+
   console.log("checkboxValues", checkboxValues);
 
   return (
@@ -401,17 +418,29 @@ const CorporateBusinessForm = () => {
 
         {directors.map((director, index) => (
           <div key={index} className="grid grid-cols-2 gap-6 p-6 border-b border-gray-300">
+            {/* Add delete button at the top right of each director section */}
+            <div className="col-span-2 flex justify-end mb-4">
+              <button
+                type="button"
+                onClick={() => handleDeleteDirector(index)}
+                className="px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-lg"
+              >
+                Delete Director
+              </button>
+            </div>
+
             {/* Title */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="title"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].title}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="title"
+                    className="mr-2"
+                    checked={checkboxValues[index].title}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Title</label>
               </div>
               <select
@@ -434,14 +463,15 @@ const CorporateBusinessForm = () => {
             {/* Full Name */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="fullName"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].fullName}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="fullName"
+                    className="mr-2"
+                    checked={checkboxValues[index].fullName}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Full Name</label>
               </div>
               <input
@@ -449,22 +479,24 @@ const CorporateBusinessForm = () => {
                 name="fullName"
                 value={director.fullName}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].fullName}
+                required
               />
             </div>
 
             {/* Date of Birth (Optional) */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="dob"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].dob}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="dob"
+                    className="mr-2"
+                    checked={checkboxValues[index].dob}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Date of Birth (Optional)</label>
               </div>
               <input
@@ -480,14 +512,15 @@ const CorporateBusinessForm = () => {
             {/* Province */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="province"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].province}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="province"
+                    className="mr-2"
+                    checked={checkboxValues[index].province}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Province</label>
               </div>
               <input
@@ -495,22 +528,24 @@ const CorporateBusinessForm = () => {
                 name="province"
                 value={director.province}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].province}
+                required
               />
             </div>
 
             {/* District */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="district"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].district}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="district"
+                    className="mr-2"
+                    checked={checkboxValues[index].district}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director District</label>
               </div>
               <input
@@ -518,22 +553,24 @@ const CorporateBusinessForm = () => {
                 name="district"
                 value={director.district}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].district}
+                required
               />
             </div>
 
             {/* Divisional Secretariat Division */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="division"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].division}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="division"
+                    className="mr-2"
+                    checked={checkboxValues[index].division}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Divisional Secretariat Division</label>
               </div>
               <input
@@ -541,22 +578,24 @@ const CorporateBusinessForm = () => {
                 name="division"
                 value={director.division}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].division}
+                required
               />
             </div>
 
             {/* Address 1 */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="address1"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].address1}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="address1"
+                    className="mr-2"
+                    checked={checkboxValues[index].address1}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Address 1</label>
               </div>
               <input
@@ -564,22 +603,24 @@ const CorporateBusinessForm = () => {
                 name="address1"
                 value={director.address1}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].address1}
+                required
               />
             </div>
 
             {/* Address 2 (Optional) */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="address2"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].address2}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="address2"
+                    className="mr-2"
+                    checked={checkboxValues[index].address2}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Address 2 (Optional)</label>
               </div>
               <input
@@ -587,22 +628,24 @@ const CorporateBusinessForm = () => {
                 name="address2"
                 value={director.address2}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].address2}
+                required
               />
             </div>
 
             {/* Post Code/ZIP */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="postCode"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].postCode}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="postCode"
+                    className="mr-2"
+                    checked={checkboxValues[index].postCode}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Post Code/ZIP</label>
               </div>
               <input
@@ -610,68 +653,100 @@ const CorporateBusinessForm = () => {
                 name="postCode"
                 value={director.postCode}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].postCode}
+                required
               />
             </div>
 
-            {/* Residential Phone No. (Optional) */}
+            {/* Phone Number */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="phone"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].phone}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
-                <label className="block font-medium">Director Residential Phone No. (Optional)</label>
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="phone"
+                    className="mr-2"
+                    checked={checkboxValues[index].phone}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
+                <label className="block font-medium">Phone Number</label>
               </div>
               <input
-                type="text"
+                type="tel"
                 name="phone"
                 value={director.phone}
-                onChange={(e) => handleDirectorChange(e, index)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (
+                    (/^\d*$/.test(value) || value === '') &&
+                    (value.length === 0 || value[0] === '0') &&
+                    value.length <= 10
+                  ) {
+                    handleDirectorChange(e, index);
+                  }
+                }}
+                pattern="0[0-9]{9}"
+                maxLength="10"
+                placeholder="0XXXXXXXXX"
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].phone}
+                required
+                title="Phone number must start with 0 and be 10 digits long"
               />
             </div>
 
-            {/* Mobile Phone No. */}
+            {/* Mobile Number */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="mobile"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].mobile}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
-                <label className="block font-medium">Director Mobile Phone No.</label>
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="mobile"
+                    className="mr-2"
+                    checked={checkboxValues[index].mobile}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
+                <label className="block font-medium">Mobile Number</label>
               </div>
               <input
-                type="text"
+                type="tel"
                 name="mobile"
                 value={director.mobile}
-                onChange={(e) => handleDirectorChange(e, index)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (
+                    (/^\d*$/.test(value) || value === '') &&
+                    (value.length === 0 || value[0] === '0') &&
+                    value.length <= 10
+                  ) {
+                    handleDirectorChange(e, index);
+                  }
+                }}
+                pattern="0[0-9]{9}"
+                maxLength="10"
+                placeholder="0XXXXXXXXX"
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues[index].mobile}
+                required
+                title="Phone number must start with 0 and be 10 digits long"
               />
             </div>
 
             {/* Email Address */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="email"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].email}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="email"
+                    className="mr-2"
+                    checked={checkboxValues[index].email}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Email Address</label>
               </div>
               <input
@@ -679,22 +754,24 @@ const CorporateBusinessForm = () => {
                 name="email"
                 value={director.email}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].email}
+                required
               />
             </div>
 
             {/* Occupation */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="occupation"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].occupation}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="occupation"
+                    className="mr-2"
+                    checked={checkboxValues[index].occupation}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Occupation</label>
               </div>
               <input
@@ -702,22 +779,24 @@ const CorporateBusinessForm = () => {
                 name="occupation"
                 value={director.occupation}
                 onChange={(e) => handleDirectorChange(e, index)}
-                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
                 disabled={!checkboxValues[index].occupation}
+                required
               />
             </div>
 
             {/* NIC Front Upload */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="nicFront"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].nicFront}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="nicFront"
+                    className="mr-2"
+                    checked={checkboxValues[index].nicFront}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director NIC Front</label>
               </div>
               <div className="space-y-2 flex items-center">
@@ -727,6 +806,7 @@ const CorporateBusinessForm = () => {
                   onChange={(e) => handleFileChange(e, index, 'nicFront')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].nicFront}
+                  required={director.nicFront ? false : true}
                 />
                 <button
                   className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
@@ -743,14 +823,15 @@ const CorporateBusinessForm = () => {
             {/* NIC Back Upload */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="nicBack"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].nicBack}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="nicBack"
+                    className="mr-2"
+                    checked={checkboxValues[index].nicBack}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director NIC Back</label>
               </div>
               <div className="space-y-2 flex items-center">
@@ -760,6 +841,7 @@ const CorporateBusinessForm = () => {
                   onChange={(e) => handleFileChange(e, index, 'nicBack')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].nicBack}
+                  required={director.nicBack ? false : true}
                 />
                 <button
                   className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
@@ -776,14 +858,15 @@ const CorporateBusinessForm = () => {
             {/* Signature Upload */}
             <div className="mb-4">
               <div className="flex items-center mb-2">
-                <input
-                  type="checkbox"
-                  name="signature"
-                  className="mr-2"
-                  disabled={userRole === 'user'}
-                  checked={checkboxValues[index].signature}
-                  onChange={(e) => handleCheckboxChange(e, index)}
-                />
+                {userRole !== 'user' && (
+                  <input
+                    type="checkbox"
+                    name="signature"
+                    className="mr-2"
+                    checked={checkboxValues[index].signature}
+                    onChange={(e) => handleCheckboxChange(e, index)}
+                  />
+                )}
                 <label className="block font-medium">Director Signature</label>
               </div>
               <div className="space-y-2 flex items-center">
@@ -793,6 +876,7 @@ const CorporateBusinessForm = () => {
                   onChange={(e) => handleFileChange(e, index, 'signature')}
                   className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                   disabled={!checkboxValues[index].signature}
+                  required={director.signature ? false : true}
                 />
                 <button
                   className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
@@ -845,7 +929,10 @@ const CorporateBusinessForm = () => {
             </button>
           </div>
         </div>
-
+        <div className="mt-4">
+          <hr className="mb-8 border-gray-300" />
+          <p className="my-4 text-center text-black">By accessing or using the Services, you agree to be bound by these Terms as if signed by you.</p>
+        </div>
       </form>
     </div>
   );

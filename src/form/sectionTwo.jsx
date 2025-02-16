@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db, auth } from '../firebase';
+import { db, auth, storage } from '../firebase';
 import { collection, addDoc, serverTimestamp, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useUserContext } from '../context/UserContext';
@@ -8,6 +8,9 @@ import SideNav from "../components/TopNav";
 import { fetchBusinessData } from '../utils/dashboardUtils';
 import { getUserDocumentByEmail, getUserRole } from '../firestore';
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getStorage } from 'firebase/storage';
+import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
 
 
 const CorporateBusinessForm = () => {
@@ -17,21 +20,31 @@ const CorporateBusinessForm = () => {
   const userIdFromAdmin = localStorage.getItem('applicationUserId');
   const [formData, setFormData] = useState({
     companyName: '',
-    businessType: '',
-    registrationNumber: '',
-    authorizedPersonName: '',
-    authorizedPersonEmail: '',
-    authorizedPersonPhone: ''
+    companyNameType: '',
+    companyLogo: null,
+    companyAddress: '',
+    companyProvince: '',
+    companyDistrict: '',
+    companyDivisionalOffice: '',
+    companyGNDivision: '',
+    companyPostalCode: '',
+    companyEmail: '',
+    businessDescription: ''
   });
 
   const [userRole, setUserRole] = useState('admin');
   const [checkboxValues, setCheckboxValues] = useState({
-    companyName: true,
-    businessType: true,
-    registrationNumber: true,
-    authorizedPersonName: true,
-    authorizedPersonEmail: true,
-    authorizedPersonPhone: true
+    companyName: state.user?.role === 'admin' ? false : true,
+    companyNameType: state.user?.role === 'admin' ? false : true,
+    companyLogo: state.user?.role === 'admin' ? false : true,
+    companyAddress: state.user?.role === 'admin' ? false : true,
+    companyProvince: state.user?.role === 'admin' ? false : true,
+    companyDistrict: state.user?.role === 'admin' ? false : true,
+    companyDivisionalOffice: state.user?.role === 'admin' ? false : true,
+    companyGNDivision: state.user?.role === 'admin' ? false : true,
+    companyPostalCode: state.user?.role === 'admin' ? false : true,
+    companyEmail: state.user?.role === 'admin' ? false : true,
+    businessDescription: state.user?.role === 'admin' ? false : true
   });
 
   // Auth state management useEffect
@@ -78,7 +91,6 @@ const CorporateBusinessForm = () => {
 
   // Business data fetching useEffect
   useEffect(() => {
-
     const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
     console.log("userId from section two useEffect", userId);
 
@@ -86,20 +98,30 @@ const CorporateBusinessForm = () => {
       fetchBusinessData(userId, dispatch).then(() => {
         setFormData({
           companyName: state.businessInformation?.companyName || '',
-          businessType: state.businessInformation?.businessType || '',
-          registrationNumber: state.businessInformation?.registrationNumber || '',
-          authorizedPersonName: state.businessInformation?.authorizedPersonName || '',
-          authorizedPersonEmail: state.businessInformation?.authorizedPersonEmail || '',
-          authorizedPersonPhone: state.businessInformation?.authorizedPersonPhone || ''
+          companyNameType: state.businessInformation?.companyNameType || '',
+          companyLogo: state.businessInformation?.companyLogo || null,
+          companyAddress: state.businessInformation?.companyAddress || '',
+          companyProvince: state.businessInformation?.companyProvince || '',
+          companyDistrict: state.businessInformation?.companyDistrict || '',
+          companyDivisionalOffice: state.businessInformation?.companyDivisionalOffice || '',
+          companyGNDivision: state.businessInformation?.companyGNDivision || '',
+          companyPostalCode: state.businessInformation?.companyPostalCode || '',
+          companyEmail: state.businessInformation?.companyEmail || '',
+          businessDescription: state.businessInformation?.businessDescription || ''
         });
 
         setCheckboxValues({
           companyName: state.user?.role === 'admin' ? false : state.businessInformation?.checkCompanyName ?? true,
-          businessType: state.user?.role === 'admin' ? false : state.businessInformation?.checkBusinessType ?? true,
-          registrationNumber: state.user?.role === 'admin' ? false : state.businessInformation?.checkRegistrationNumber ?? true,
-          authorizedPersonName: state.user?.role === 'admin' ? false : state.businessInformation?.checkAuthorizedPersonName ?? true,
-          authorizedPersonEmail: state.user?.role === 'admin' ? false : state.businessInformation?.checkAuthorizedPersonEmail ?? true,
-          authorizedPersonPhone: state.user?.role === 'admin' ? false : state.businessInformation?.checkAuthorizedPersonPhone ?? true
+          companyNameType: state.user?.role === 'admin' ? false : state.businessInformation?.checkCompanyNameType ?? true,
+          companyLogo: state.user?.role === 'admin' ? false : state.businessInformation?.checkCompanyLogo ?? true,
+          companyAddress: state.user?.role === 'admin' ? false : state.businessInformation?.checkCompanyAddress ?? true,
+          companyProvince: state.user?.role === 'admin' ? false : state.businessInformation?.checkCompanyProvince ?? true,
+          companyDistrict: state.user?.role === 'admin' ? false : state.businessInformation?.checkCompanyDistrict ?? true,
+          companyDivisionalOffice: state.user?.role === 'admin' ? false : state.businessInformation?.checkCompanyDivisionalOffice ?? true,
+          companyGNDivision: state.user?.role === 'admin' ? false : state.businessInformation?.checkCompanyGNDivision ?? true,
+          companyPostalCode: state.user?.role === 'admin' ? false : state.businessInformation?.checkCompanyPostalCode ?? true,
+          companyEmail: state.user?.role === 'admin' ? false : state.businessInformation?.checkCompanyEmail ?? true,
+          businessDescription: state.user?.role === 'admin' ? false : state.businessInformation?.checkBusinessDescription ?? true
         });
       });
     }
@@ -107,8 +129,6 @@ const CorporateBusinessForm = () => {
     if (state.user?.role === 'user') {
       setUserRole('user');
     }
- 
-
   }, [state.user, userIdFromAdmin, dispatch]);
 
   const handleChange = (e) => {
@@ -121,48 +141,131 @@ const CorporateBusinessForm = () => {
     setCheckboxValues({ ...checkboxValues, [name]: checked });
   };
 
+  const uploadFile = async (file, userId, fileType) => {
+    if (!file) return null;
+
+    const storage = getStorage();
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `business/${userId}/${fileType}.${fileExtension}`;
+    const storageRef = ref(storage, fileName);
+
+    try {
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      return { url: downloadURL, path: fileName };
+    } catch (error) {
+      console.error(`Error uploading ${fileType}:`, error);
+      throw error;
+    }
+  };
+
+  const deleteOldFile = async (filePath) => {
+    if (!filePath) return;
+
+    const storage = getStorage();
+    const fileRef = ref(storage, filePath);
+    try {
+      await deleteObject(fileRef);
+    } catch (error) {
+      console.error('Error deleting old file:', error);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({
+        ...formData,
+        companyLogo: file
+      });
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
+
+      // Handle company logo upload
+      const logoFile = formData.companyLogo instanceof File ? formData.companyLogo : null;
+
+      // Get existing business data
+      const businessRef = collection(db, 'business');
+      const q = query(businessRef, where('userId', '==', userId));
+      const querySnapshot = await getDocs(q);
+      const existingBusiness = querySnapshot.empty ? {} : querySnapshot.docs[0].data();
+
+      // Upload new logo or keep existing URL
+      const companyLogo = logoFile
+        ? await uploadFile(logoFile, userId, 'logo')
+        : existingBusiness.companyLogo || null;
+
+      // Delete old logo if new one is uploaded
+      if (logoFile && existingBusiness.companyLogo) {
+        await deleteOldFile(existingBusiness.companyLogo.path);
+      }
+
       const dataToAdd = {
         ...formData,
-        checkCompanyName: state.user.role === 'user' ? false : checkboxValues.companyName,
-        checkBusinessType: state.user.role === 'user' ? false : checkboxValues.businessType,
-        checkRegistrationNumber: state.user.role === 'user' ? false : checkboxValues.registrationNumber,
-        checkAuthorizedPersonName: state.user.role === 'user' ? false : checkboxValues.authorizedPersonName,
-        checkAuthorizedPersonEmail: state.user.role === 'user' ? false : checkboxValues.authorizedPersonEmail,
-        checkAuthorizedPersonPhone: state.user.role === 'user' ? false : checkboxValues.authorizedPersonPhone,
+        companyLogo,
+        checkCompanyName: state.user?.role === 'user' ? false : checkboxValues.companyName,
+        checkCompanyNameType: state.user?.role === 'user' ? false : checkboxValues.companyNameType,
+        checkCompanyLogo: state.user?.role === 'user' ? false : checkboxValues.companyLogo,
+        checkCompanyAddress: state.user?.role === 'user' ? false : checkboxValues.companyAddress,
+        checkCompanyProvince: state.user?.role === 'user' ? false : checkboxValues.companyProvince,
+        checkCompanyDistrict: state.user?.role === 'user' ? false : checkboxValues.companyDistrict,
+        checkCompanyDivisionalOffice: state.user?.role === 'user' ? false : checkboxValues.companyDivisionalOffice,
+        checkCompanyGNDivision: state.user?.role === 'user' ? false : checkboxValues.companyGNDivision,
+        checkCompanyPostalCode: state.user?.role === 'user' ? false : checkboxValues.companyPostalCode,
+        checkCompanyEmail: state.user?.role === 'user' ? false : checkboxValues.companyEmail,
+        checkBusinessDescription: state.user?.role === 'user' ? false : checkboxValues.businessDescription,
         status: 'Pending',
-        createdAt: serverTimestamp(),
-        userId: state.user.uid
+        userId: userId,
+        createdAt: serverTimestamp()
       };
 
       const dataToUpdate = {
         ...formData,
-        checkCompanyName: state.user.role === 'user' ? false : checkboxValues.companyName,
-        checkBusinessType: state.user.role === 'user' ? false : checkboxValues.businessType,
-        checkRegistrationNumber: state.user.role === 'user' ? false : checkboxValues.registrationNumber,
-        checkAuthorizedPersonName: state.user.role === 'user' ? false : checkboxValues.authorizedPersonName,
-        checkAuthorizedPersonEmail: state.user.role === 'user' ? false : checkboxValues.authorizedPersonEmail,
-        checkAuthorizedPersonPhone: state.user.role === 'user' ? false : checkboxValues.authorizedPersonPhone,
-        status: state.user.role === 'admin' ? 'Resubmit' : 'Pending',
+        companyLogo,
+        checkCompanyName: state.user?.role === 'user' ? false : checkboxValues.companyName,
+        checkCompanyNameType: state.user?.role === 'user' ? false : checkboxValues.companyNameType,
+        checkCompanyLogo: state.user?.role === 'user' ? false : checkboxValues.companyLogo,
+        checkCompanyAddress: state.user?.role === 'user' ? false : checkboxValues.companyAddress,
+        checkCompanyProvince: state.user?.role === 'user' ? false : checkboxValues.companyProvince,
+        checkCompanyDistrict: state.user?.role === 'user' ? false : checkboxValues.companyDistrict,
+        checkCompanyDivisionalOffice: state.user?.role === 'user' ? false : checkboxValues.companyDivisionalOffice,
+        checkCompanyGNDivision: state.user?.role === 'user' ? false : checkboxValues.companyGNDivision,
+        checkCompanyPostalCode: state.user?.role === 'user' ? false : checkboxValues.companyPostalCode,
+        checkCompanyEmail: state.user?.role === 'user' ? false : checkboxValues.companyEmail,
+        checkBusinessDescription: state.user?.role === 'user' ? false : checkboxValues.businessDescription,
+        status: state.user?.role === 'admin' ? 'Resubmit' : 'Pending',
         createdAt: serverTimestamp()
       };
-
-      const businessRef = collection(db, 'business');
-      const q = query(businessRef, where('userId', '==', state.companyInformation.userId));
-      const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
         const docRef = doc(db, 'business', querySnapshot.docs[0].id);
         await updateDoc(docRef, dataToUpdate);
-        await updateOverallStatus(state.businessInformation.userId, state, dispatch);
-
+        await updateOverallStatus(userId, state, dispatch);
+        if (userRole !== 'user') {
+          await sendUpdateEmailToUser(userId);
+        } else {
+          await sendUpdateEmailToAdmin(userId);
+        }
         console.log('Business information updated successfully!');
       } else {
         await addDoc(businessRef, dataToAdd);
         console.log('Business information saved successfully!');
       }
+
+      // // Update context
+      // dispatch({
+      //   type: 'SET_BUSINESS_INFORMATION',
+      //   payload: {
+      //     ...formDataToSave,
+      //     status: formDataToSave.status,
+      //     userId: formDataToSave.userId
+      //   }
+      // });
 
       navigate('/section-three', { state: { userId: userIdFromAdmin } });
 
@@ -180,6 +283,11 @@ const CorporateBusinessForm = () => {
   const handleBack = () => {
     navigate('/section-one');
   };
+
+  const handleView = (url) => {
+    window.open(url, '_blank');
+  };
+
 
   return (
     <div className="p-6 mx-auto mt-12 bg-gray-100 rounded-lg shadow-lg max-w-8xl">
@@ -226,14 +334,15 @@ const CorporateBusinessForm = () => {
           {/* Company Name */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="companyName"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.companyName}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="companyName"
+                  className="mr-2"
+                  checked={checkboxValues.companyName}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Company Name</label>
             </div>
             <input
@@ -241,132 +350,273 @@ const CorporateBusinessForm = () => {
               name="companyName"
               value={formData.companyName}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.companyName}
+              required
             />
           </div>
 
           {/* Business Type */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="businessType"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.businessType}
-                onChange={handleCheckboxChange}
-              />
-              <label className="block font-medium">Business Type</label>
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="companyNameType"
+                  className="mr-2"
+                  checked={checkboxValues.companyNameType}
+                  onChange={handleCheckboxChange}
+                />
+              )}
+              <label className="block font-medium">Company Name Type</label>
             </div>
             <select
-              name="businessType"
-              value={formData.businessType}
+              name="companyNameType"
+              value={formData.companyNameType}
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
-              disabled={!checkboxValues.businessType}
+              disabled={!checkboxValues.companyNameType}
+              required
             >
-              <option value="">Select Business Type</option>
-              <option value="Sole Proprietorship">Sole Proprietorship</option>
-              <option value="Partnership">Partnership</option>
-              <option value="Corporation">Corporation</option>
-              <option value="LLC">LLC</option>
+              <option value="">Select Company Name Type</option>
+              <option value="(PVT) LTD">(PVT) LTD</option>
+              <option value="(PRIVATE) LIMITED">(PRIVATE) LIMITED</option>
             </select>
           </div>
 
-          {/* Registration Number */}
+          {/* Company Logo Upload */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="registrationNumber"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.registrationNumber}
-                onChange={handleCheckboxChange}
-              />
-              <label className="block font-medium">Registration Number</label>
-            </div>
-            <input
-              type="text"
-              name="registrationNumber"
-              value={formData.registrationNumber}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
-              disabled={!checkboxValues.registrationNumber}
-            />
-          </div>
-
-          {/* Authorized Person Name */}
-          <div className="mb-4">
-            <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="authorizedPersonName"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.authorizedPersonName}
-                onChange={handleCheckboxChange}
-              />
-              <label className="block font-medium">Authorized Person Name</label>
-            </div>
-            <input
-              type="text"
-              name="authorizedPersonName"
-              value={formData.authorizedPersonName}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
-              disabled={!checkboxValues.authorizedPersonName}
-            />
-          </div>
-
-          {/* Authorized Person Email */}
-          <div className="mb-4">
-            <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="authorizedPersonEmail"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.authorizedPersonEmail}
-                onChange={handleCheckboxChange}
-              />
-              <label className="block font-medium">Authorized Person Email</label>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
+              {userRole !== 'user' && (
                 <input
-                  type="email"
-                  name="authorizedPersonEmail"
-                  value={formData.authorizedPersonEmail}
-                  onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
-                  disabled={!checkboxValues.authorizedPersonEmail}
+                  type="checkbox"
+                  name="companyLogo"
+                  className="mr-2"
+                  checked={checkboxValues.companyLogo}
+                  onChange={handleCheckboxChange}
                 />
-              </div>
+              )}
+              <label className="block font-medium">Company Logo</label>
             </div>
+            <div className="space-y-2 flex items-center">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                disabled={!checkboxValues.companyLogo}
+                required={formData.companyLogo ? false : true}
+              />
+              <button
+                type="button"
+                className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
+                onClick={() => handleView(formData.companyLogo?.url)}
+              >
+                View
+              </button>
+            </div>
+            {formData.companyLogo?.url && (
+              <span className='text-green-500'>File Uploaded!</span>
+            )}
           </div>
 
-          {/* Authorized Person Phone */}
+          {/* Company Address */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="authorizedPersonPhone"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.authorizedPersonPhone}
-                onChange={handleCheckboxChange}
-              />
-              <label className="block font-medium">Authorized Person Phone</label>
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="companyAddress"
+                  className="mr-2"
+                  checked={checkboxValues.companyAddress}
+                  onChange={handleCheckboxChange}
+                />
+              )}
+              <label className="block font-medium">Company Address</label>
             </div>
             <input
               type="text"
-              name="authorizedPersonPhone"
-              value={formData.authorizedPersonPhone}
+              name="companyAddress"
+              value={formData.companyAddress}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
-              disabled={!checkboxValues.authorizedPersonPhone}
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
+              disabled={!checkboxValues.companyAddress}
+              required
+            />
+          </div>
+
+          {/* Company Province */}
+          <div className="mb-4">
+            <div className="flex items-center mb-2">
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="companyProvince"
+                  className="mr-2"
+                  checked={checkboxValues.companyProvince}
+                  onChange={handleCheckboxChange}
+                />
+              )}
+              <label className="block font-medium">Company Province</label>
+            </div>
+            <input
+              type="text"
+              name="companyProvince"
+              value={formData.companyProvince}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
+              disabled={!checkboxValues.companyProvince}
+              required
+            />
+          </div>
+
+          {/* Company District */}
+          <div className="mb-4">
+            <div className="flex items-center mb-2">
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="companyDistrict"
+                  className="mr-2"
+                  checked={checkboxValues.companyDistrict}
+                  onChange={handleCheckboxChange}
+                />
+              )}
+              <label className="block font-medium">Company District</label>
+            </div>
+            <input
+              type="text"
+              name="companyDistrict"
+              value={formData.companyDistrict}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
+              disabled={!checkboxValues.companyDistrict}
+              required
+            />
+          </div>
+
+          {/* Company Divisional Office */}
+          <div className="mb-4">
+            <div className="flex items-center mb-2">
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="companyDivisionalOffice"
+                  className="mr-2"
+                  checked={checkboxValues.companyDivisionalOffice}
+                  onChange={handleCheckboxChange}
+                />
+              )}
+              <label className="block font-medium">Companies Divisional Secretariat Office</label>
+            </div>
+            <input
+              type="text"
+              name="companyDivisionalOffice"
+              value={formData.companyDivisionalOffice}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
+              disabled={!checkboxValues.companyDivisionalOffice}
+              required
+            />
+          </div>
+
+          {/* Company GN Division */}
+          <div className="mb-4">
+            <div className="flex items-center mb-2">
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="companyGNDivision"
+                  className="mr-2"
+                  checked={checkboxValues.companyGNDivision}
+                  onChange={handleCheckboxChange}
+                />
+              )}
+              <label className="block font-medium">Companies GN Division</label>
+            </div>
+            <input
+              type="text"
+              name="companyGNDivision"
+              value={formData.companyGNDivision}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
+              disabled={!checkboxValues.companyGNDivision}
+              required
+            />
+          </div>
+
+          {/* Company Postal Code */}
+          <div className="mb-4">
+            <div className="flex items-center mb-2">
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="companyPostalCode"
+                  className="mr-2"
+                  checked={checkboxValues.companyPostalCode}
+                  onChange={handleCheckboxChange}
+                />
+              )}
+              <label className="block font-medium">Companies Postal / Zip Code</label>
+            </div>
+            <input
+              type="text"
+              name="companyPostalCode"
+              value={formData.companyPostalCode}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
+              disabled={!checkboxValues.companyPostalCode}
+              required
+            />
+          </div>
+
+          {/* Company Email */}
+          <div className="mb-4">
+            <div className="flex items-center mb-2">
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="companyEmail"
+                  className="mr-2"
+                  checked={checkboxValues.companyEmail}
+                  onChange={handleCheckboxChange}
+                />
+              )}
+              <label className="block font-medium">Companies E-mail Address</label>
+            </div>
+            <input
+              type="email"
+              name="companyEmail"
+              value={formData.companyEmail}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
+              disabled={!checkboxValues.companyEmail}
+              required
+            />
+          </div>
+
+          {/* Business Description */}
+          <div className="mb-4 col-span-2">
+            <div className="flex items-center mb-2">
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="businessDescription"
+                  className="mr-2"
+                  checked={checkboxValues.businessDescription}
+                  onChange={handleCheckboxChange}
+                />
+              )}
+              <label className="block font-medium">Business Description</label>
+            </div>
+            <textarea
+              name="businessDescription"
+              value={formData.businessDescription}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
+              disabled={!checkboxValues.businessDescription}
+              required
+              rows="4"
             />
           </div>
         </div>
@@ -394,6 +644,10 @@ const CorporateBusinessForm = () => {
               Next
             </button>
           </div>
+        </div>
+        <div className="mt-4">
+          <hr className="mb-8 border-gray-300" />
+          <p className="my-4 text-center text-black">By accessing or using the Services, you agree to be bound by these Terms as if signed by you.</p>
         </div>
       </form>
     </div>

@@ -10,16 +10,28 @@ import { fetchContactData } from '../utils/dashboardUtils';
 import { getUserDocumentByEmail, getUserRole } from '../firestore';
 import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../firebase';
+import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
+import { getContactData, getVarifyData } from '../utils/firebaseDataService';
+
 
 const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
   console.log("state is the one", state);
 
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
   const [userRole, setUserRole] = useState('admin');
   const location = useLocation();
   const userIdFromAdmin = localStorage.getItem('applicationUserId');
   console.log("userIdFromAdmin from section one", userIdFromAdmin);
+  const [otp, setOtp] = useState('');
+  const [otpEmailSent, setOtpEmailSent] = useState(false);
+  const [otpEmailVerified, setOtpEmailVerified] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [otpSmsSent, setOtpSmsSent] = useState(false);
+  const [otpSmsVerified, setOtpSmsVerified] = useState(false);
+  const [otpSmsError, setOtpSmsError] = useState('');
 
   const [formData, setFormData] = useState({
     email: '',
@@ -27,7 +39,9 @@ const CorporateBusinessForm = () => {
     contactPersonTitle: '',
     contactPersonName: '',
     contactPersonEmail: '',
-    contactPersonPhone: ''
+    contactPersonPhone: '',
+    otpEmailByUser: '',
+    otpSmsByUser: ''
   });
 
   const [checkboxValues, setCheckboxValues] = useState({
@@ -80,8 +94,9 @@ const CorporateBusinessForm = () => {
     return () => unsubscribe();
   }, [dispatch]);
 
-  useEffect(() => {
 
+
+  useEffect(() => {
     const userId = state.user.role === 'admin' ? userIdFromAdmin : state.user.uid;
     console.log("userId from useEffect", userId);
 
@@ -111,9 +126,26 @@ const CorporateBusinessForm = () => {
     if (state.user.role === 'user') {
       setUserRole('user');
     }
-   
-
   }, [state.user, userIdFromAdmin, dispatch]);
+
+  useEffect(() => {
+    const checkVerification = async () => {
+      const varifyData = await getVarifyData(state.user.uid);
+      if (varifyData.contactPersonEmailVarified && varifyData.contactPersonEmailVarified === formData.contactPersonEmail) {
+        setOtpEmailVerified(true);
+      } else {
+        setOtpEmailVerified(false);
+      }
+
+      if (varifyData.contactPersonPhoneVarified && varifyData.contactPersonPhoneVarified === formData.contactPersonPhone) {
+        setOtpSmsVerified(true);
+      } else {
+        setOtpSmsVerified(false);
+      }
+    };
+
+    checkVerification();
+  }, [state.user, formData.contactPersonEmail, formData.contactPersonPhone]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -127,6 +159,11 @@ const CorporateBusinessForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!otpEmailVerified || !otpSmsVerified) { //TODO : skip varification for now
+      alert('Please verify your email and phone number before submitting.');
+      return;
+    }
 
     try {
       const dataToAdd = {
@@ -163,6 +200,13 @@ const CorporateBusinessForm = () => {
         const docRef = doc(db, 'contacts', querySnapshot.docs[0].id);
         await updateDoc(docRef, dataToUpdate);
         await updateOverallStatus(state.companyInformation.userId, state, dispatch);
+
+        if (userRole !== 'user') {
+          await sendUpdateEmailToUser(state.companyInformation.userId);
+        } else {
+          await sendUpdateEmailToAdmin(state.companyInformation.userId);
+        }
+
         console.log('Contact updated successfully!');
       } else {
         await addDoc(collection(db, 'contacts'), dataToAdd);
@@ -173,7 +217,7 @@ const CorporateBusinessForm = () => {
       navigate('/section-two', { state: { userId: userIdFromAdmin } });
 
     } catch (error) {
-      console.error('Error handling document: ', error);
+      console.error('Error:', error);
       console.log('Error saving contact. Please try again.');
     }
   };
@@ -181,6 +225,171 @@ const CorporateBusinessForm = () => {
   const handleNext = () => {
     navigate('/section-two', { state: { userId: userIdFromAdmin } });
 
+  };
+
+
+  const generateOtp = () => {
+    // Generate a 6-digit number between 100000 and 999999
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    setOtp(otp);
+    return otp;
+  };
+
+  const handleEmailVarification = async () => {
+    const otp = generateOtp();
+    console.log("otp is", otp);
+
+    try {
+      const emailContent = {
+        to: formData.contactPersonEmail,
+        message: {
+          subject: 'NOTCHLN - Email Verification Code',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #4A90E2; font-size: 30px; font-weight: bold; margin: 0;">NOTCHLN</h1>
+              </div>
+              
+              <div style="background-color: #f8f9fa; border-radius: 10px; padding: 30px; margin-bottom: 20px;">
+                <h2 style="color: #333; font-size: 24px; margin-bottom: 20px; text-align: center;">Email Verification</h2>
+                
+                <p style="color: #555; font-size: 16px; line-height: 1.5; margin-bottom: 20px; text-align: center;">
+                  Please use the following verification code to complete your email verification process:
+                </p>
+                
+                <div style="background-color: #fff; padding: 15px; border-radius: 5px; text-align: center; margin: 25px 0;">
+                  <h1 style="color: #4A90E2; font-size: 36px; letter-spacing: 5px; margin: 0;">${otp}</h1>
+                </div>
+                
+                <p style="color: #555; font-size: 14px; text-align: center; margin-top: 20px;">
+                  This verification code will expire in 10 minutes for security purposes.
+                </p>
+              </div>
+              
+              <div style="color: #777; font-size: 12px; text-align: center; margin-top: 20px;">
+                <p>This is an automated message, please do not reply.</p>
+                <p>If you did not request this verification code, please ignore this email.</p>
+              </div>
+              
+              <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
+                <p style="color: #777; font-size: 12px;">
+                  © ${new Date().getFullYear()} NOTCHLN. All rights reserved.
+                </p>
+              </div>
+            </div>
+          `
+        }
+      };
+
+      const response = await fetch('https://us-central1-e-corporate.cloudfunctions.net/sendEmail', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailContent)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send email');
+      }
+
+      setOtpEmailSent(true);
+      // alert('OTP sent successfully!');
+    } catch (error) {
+      console.error('Error sending OTP:', error);
+      // alert('Failed to send OTP. Please try again.');
+    }
+  };
+
+
+  const handleEmailVarify = async () => {
+    if (formData.otpEmailByUser === otp) {
+      const varifyRef = collection(db, 'varify');
+      const q = query(varifyRef, where('userId', '==', state.user.uid));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const docRef = doc(db, 'varify', querySnapshot.docs[0].id);
+        await updateDoc(docRef, {
+          contactPersonEmailVarified: formData.contactPersonEmail,
+          updatedAt: serverTimestamp()
+        });
+        console.log('Varify updated successfully!');
+      } else {
+        await addDoc(collection(db, 'varify'), {
+          userId: state.user.uid,
+          contactPersonEmailVarified: formData.contactPersonEmail,
+          createdAt: serverTimestamp()
+        });
+        console.log('Varify saved successfully!');
+      }
+      setOtpEmailVerified(true);
+      setOtpEmailSent(false);
+      setOtpError('');
+    } else {
+      setOtpError('Invalid OTP. Please try again.');
+    }
+  };
+
+  const handleSmsVarification = async () => {
+    const otp = generateOtp();
+    console.log("sms otp is", otp);
+
+    try {
+      const smsContent = {
+        to: formData.contactPersonPhone,
+        message: `Your NOTCHLN verification code is: ${otp}`
+      };
+
+      const response = await fetch('https://us-central1-e-corporate.cloudfunctions.net/sendSMS', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(smsContent)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send SMS');
+      }
+
+      setOtp(otp); // Save OTP for verification
+      setOtpSmsSent(true);
+      // alert('OTP sent successfully!');
+    } catch (error) {
+      console.error('Error sending OTP:', error);
+      // alert('Failed to send OTP. Please try again.');
+    }
+  };
+
+  const handleSmsVarify = async () => {
+
+    if (formData.otpSmsByUser === otp) {
+      const varifyRef = collection(db, 'varify');
+      const q = query(varifyRef, where('userId', '==', state.user.uid));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const docRef = doc(db, 'varify', querySnapshot.docs[0].id);
+        await updateDoc(docRef, {
+          contactPersonPhoneVarified: formData.contactPersonPhone,
+          updatedAt: serverTimestamp()
+        });
+        console.log('Varify updated successfully!');
+      } else {
+        await addDoc(collection(db, 'contacts'), {
+          userId: state.user.uid,
+          contactPersonPhoneVarified: formData.contactPersonPhone,
+          createdAt: serverTimestamp()
+        });
+        console.log('Varify saved successfully!');
+      }
+      setOtpSmsVerified(true);
+      setOtpSmsSent(false);
+      setOtpSmsError('');
+    } else {
+      setOtpSmsError('Invalid OTP. Please try again.');
+    }
   };
 
   return (
@@ -227,14 +436,15 @@ const CorporateBusinessForm = () => {
           {/* Email */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="email"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.email}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="email"
+                  className="mr-2"
+                  checked={checkboxValues.email}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Email Address</label>
             </div>
             <input
@@ -242,22 +452,24 @@ const CorporateBusinessForm = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.email}
+              required
             />
           </div>
 
           {/* Registration Plan */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="registrationPlan"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.registrationPlan}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="registrationPlan"
+                  className="mr-2"
+                  checked={checkboxValues.registrationPlan}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Corporate Business Registration Plans</label>
             </div>
             <select
@@ -266,27 +478,29 @@ const CorporateBusinessForm = () => {
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
               disabled={!checkboxValues.registrationPlan}
+              required
             >
-              <option value="">Select Registration Plan</option>
-              <option value="Startup 20000/= (PRIVATE LIMITED)">Startup 20000/= (PRIVATE LIMITED)</option>
-              <option value="Professional 21400/= (PRIVATE LIMITED)">Professional 21400/= (PRIVATE LIMITED)</option>
-              <option value="Enterprise 35000/= (PRIVATE LIMITED)">Enterprise 35000/= (PRIVATE LIMITED)</option>
-              <option value="Export Import Combo 26400/= (PRIVATE LIMITED)">Export Import Combo 26400/= (PRIVATE LIMITED)</option>
-              <option value="Other">Other</option>
+              <option value="">SELECT REGISTRATION PLAN</option>
+              <option value="STARTUP 20000/= (PRIVATE LIMITED)">STARTUP 20000/= (PRIVATE LIMITED)</option>
+              <option value="PROFESSIONAL 21400/= (PRIVATE LIMITED)">PROFESSIONAL 21400/= (PRIVATE LIMITED)</option>
+              <option value="ENTERPRISE 35000/= (PRIVATE LIMITED)">ENTERPRISE 35000/= (PRIVATE LIMITED)</option>
+              <option value="EXPORT IMPORT COMBO 26400/= (PRIVATE LIMITED)">EXPORT IMPORT COMBO 26400/= (PRIVATE LIMITED)</option>
+              <option value="OTHER">OTHER</option>
             </select>
           </div>
 
           {/* Contact Person Title */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="contactPersonTitle"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.contactPersonTitle}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="contactPersonTitle"
+                  className="mr-2"
+                  checked={checkboxValues.contactPersonTitle}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Contact Person Title</label>
             </div>
             <select
@@ -295,28 +509,30 @@ const CorporateBusinessForm = () => {
               onChange={handleChange}
               className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
               disabled={!checkboxValues.contactPersonTitle}
+              required
             >
-              <option value="">Select Title</option>
-              <option>Mr</option>
-              <option>Mrs</option>
-              <option>Miss</option>
-              <option>Prof</option>
-              <option>Dr</option>
-              <option>Rev</option>
+              <option value="">SELECT TITLE</option>
+              <option>MR</option>
+              <option>MRS</option>
+              <option>MISS</option>
+              <option>PROF</option>
+              <option>DR</option>
+              <option>REV</option>
             </select>
           </div>
 
           {/* Contact Person Name */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="contactPersonName"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.contactPersonName}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="contactPersonName"
+                  className="mr-2"
+                  checked={checkboxValues.contactPersonName}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Full Name</label>
             </div>
             <input
@@ -324,58 +540,137 @@ const CorporateBusinessForm = () => {
               name="contactPersonName"
               value={formData.contactPersonName}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
               disabled={!checkboxValues.contactPersonName}
+              required
             />
           </div>
 
           {/* Contact Person Email */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="contactPersonEmail"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.contactPersonEmail}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="contactPersonEmail"
+                  className="mr-2"
+                  checked={checkboxValues.contactPersonEmail}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Contact Person's Email Address</label>
             </div>
-            <input
-              type="email"
-              name="contactPersonEmail"
-              value={formData.contactPersonEmail}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
-              disabled={!checkboxValues.contactPersonEmail}
-            />
+            <div className="flex mb-3">
+              <input
+                type="email"
+                name="contactPersonEmail"
+                value={formData.contactPersonEmail}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
+                disabled={!checkboxValues.contactPersonEmail}
+                required
+              />
+              <button
+                type="button"
+                onClick={handleEmailVarification}
+                className="ms-2 px-5 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
+              >
+                {otpEmailVerified ? 'Varified' : 'OTP'}
+              </button>
+            </div>
+
+            {otpEmailSent && (
+              <div className="flex">
+                <input
+                  type="email"
+                  placeholder="Enter OTP"
+                  name="otpEmailByUser"
+                  value={formData.otpEmailByUser}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={handleEmailVarify}
+                  className="ms-2 px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
+                >
+                  Verify
+                </button>
+              </div>
+            )}
+
           </div>
 
           {/* Contact Person Phone */}
           <div className="mb-4">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="contactPersonPhone"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.contactPersonPhone}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="contactPersonPhone"
+                  className="mr-2"
+                  checked={checkboxValues.contactPersonPhone}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Contact Person's Phone Number</label>
             </div>
-            <input
-              type="text"
-              name="contactPersonPhone"
-              value={formData.contactPersonPhone}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
-              disabled={!checkboxValues.contactPersonPhone}
-            />
+            <div className="flex mb-3">
+              <input
+                type="tel"
+                name="contactPersonPhone"
+                value={formData.contactPersonPhone}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (
+                    (/^\d*$/.test(value) || value === '') &&
+                    (value.length === 0 || value[0] === '0') &&
+                    value.length <= 10
+                  ) {
+                    handleChange(e);
+                  }
+                }}
+                pattern="0[0-9]{9}"
+                maxLength="10"
+                placeholder="0XXXXXXXXX"
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                disabled={!checkboxValues.contactPersonPhone}
+                required
+                title="Phone number must start with 0 and be 10 digits long"
+              />
+              <button
+                type="button"
+                onClick={handleSmsVarification}
+                className="ms-2 px-5 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
+              >
+                {otpSmsVerified ? 'Varified' : 'OTP'}
+              </button>
+            </div>
+
+            {otpSmsSent && (
+              <div className="flex">
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  name="otpSmsByUser"
+                  value={formData.otpSmsByUser}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg shadow-md uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={handleSmsVarify}
+                  className="ms-2 px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 rounded"
+                >
+                  Verify
+                </button>
+              </div>
+            )}
+            {otpSmsError && <p className="mt-2 text-red-500 text-sm">{otpSmsError}</p>}
           </div>
 
         </div>
+        {otpError && <p className="mt-2 text-red-500 text-sm text-center">{otpError}</p>}
         <div className="flex justify-end mt-6">
           {/* <button
             type="button"
@@ -399,6 +694,10 @@ const CorporateBusinessForm = () => {
               Next
             </button>
           </div>
+        </div>
+        <div className="mt-4">
+          <hr className="mb-8 border-gray-300" />
+          <p className="my-4 text-center text-black">By accessing or using the Services, you agree to be bound by these Terms as if signed by you.</p>
         </div>
       </form>
     </div>

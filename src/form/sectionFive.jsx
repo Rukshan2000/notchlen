@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { db, storage } from '../firebase'; // Import Firebase Storage
 import { collection, addDoc, serverTimestamp, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'; // Import Firebase storage methods
 import { useUserContext } from '../context/UserContext';
@@ -8,35 +7,92 @@ import SideNav from "../components/TopNav"; // Importing the TopNav component
 import { getStorage } from 'firebase/storage';
 import { fetchPaymentData, savePaymentData } from '../utils/dashboardUtils';
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
+import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
+import axios from 'axios';
+import { getBusinessData, getContactData, getOnepayData } from '../utils/firebaseDataService';
+import { onAuthStateChanged } from 'firebase/auth';
+import { db, auth, storage } from '../firebase';
+import { getUserDocumentByEmail, getUserRole } from '../firestore';
+import { SHA256 } from 'crypto-js';
+
 
 const PaymentForm = () => {
-  const { state, dispatch } = useUserContext();
   const navigate = useNavigate(); // Initialize useNavigate hook
-
+  const { state, dispatch } = useUserContext();
+  const [userIdFromAdmin, setUserIdFromAdmin] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null); // State for preview modal
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [cardPaymentCompleted, setCardPaymentCompleted] = useState(false);
   const [formData, setFormData] = useState({
     paymentSlip: null,
-    paymentSlipPreview: null
+    paymentSlipPreview: null,
+    cardPayment: null,
+    cardReference: null,
   });
 
   const [userRole, setUserRole] = useState('admin');
   const [checkboxValues, setCheckboxValues] = useState({
-    paymentSlip: true
+    paymentSlip: true,
+    cardPayment: true
   });
 
-  const [userIdFromAdmin, setUserIdFromAdmin] = useState(null);
+  // Add this state to track total amount
+  const [totalAmount, setTotalAmount] = useState(0);
 
-  const [previewUrl, setPreviewUrl] = useState(null); // State for preview modal
-
+    // Auth state management useEffect
+    useEffect(() => {
+      // Check localStorage for auth data on component mount
+      const savedAuth = localStorage.getItem('authUser');
+      if (savedAuth) {
+        const authData = JSON.parse(savedAuth);
+        dispatch({
+          type: 'SET_USER',
+          payload: authData
+        });
+      }
+  
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        console.log('Auth State Changed:', user);
+  
+        if (user) {
+          // Update localStorage when auth state changes
+          const userDoc = await getUserDocumentByEmail(user.email);
+          const role = await getUserRole(userDoc.id);
+  
+          const authData = {
+            email: user.email,
+            uid: user.uid,
+            role: role,
+          };
+  
+          localStorage.setItem('authUser', JSON.stringify(authData));
+  
+          dispatch({
+            type: 'SET_USER',
+            payload: authData
+          });
+        } else {
+          // Clear localStorage when user signs out
+          localStorage.removeItem('authUser');
+          dispatch({ type: 'CLEAR_USER' });
+        }
+      });
+  
+      return () => unsubscribe();
+    }, [dispatch]);
+    
   useEffect(() => {
     if (state.paymentInformation.userId) {
       setFormData({
         paymentSlip: null, // Initialize the payment slip
-        paymentSlipPreview: null // Initialize the payment slip preview
+        paymentSlipPreview: null, // Initialize the payment slip preview
+        cardPayment: null,
       });
 
       setCheckboxValues({
         // paymentSlip: true
         paymentSlip: state.user.role === 'admin' ? false : true,
+        cardPayment: state.user.role === 'admin' ? false : true,
       });
     }
     if (state.user.role === 'user') {
@@ -49,19 +105,39 @@ const PaymentForm = () => {
 
   useEffect(() => {
     const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
+
     fetchPaymentData(userId, dispatch).then(paymentData => {
       if (paymentData?.paymentSlip) {
         setFormData({
-          paymentSlip: paymentData.paymentSlip,
-          paymentSlipPreview: paymentData.paymentSlip.url
+          paymentSlip: paymentData.paymentSlip || null,
+          paymentSlipPreview: paymentData.paymentSlip?.url || null
         });
         setCheckboxValues({
-          paymentSlip: state.user.role === 'admin' ? false : true,
+          paymentSlip: state.user.role === 'admin' ? false : state.paymentInformation.checkPaymentSlip ?? true,
         });
+        setTermsAccepted(paymentData.termsAccepted || false);
       }
     });
 
+    const fetchOnepayData = async () => {
+      const onepayData = await getOnepayData(userId);
+      console.log("onepayData", onepayData);
+      if (onepayData?.status === 'Completed') {
+        setCardPaymentCompleted(true);
+        setFormData({
+          cardPayment: onepayData.additionalData.enteredAmount || null, //TODO : enable this
+          // cardPayment: onepayData.amount || null,
+          cardReference: onepayData.additionalData.reference || null,
+        });
+        setCheckboxValues({
+          cardPayment: false
+        });
+      }
 
+
+    };
+
+    fetchOnepayData();
   }, [state.user, userIdFromAdmin, dispatch]);
 
   const handleChange = (e) => {
@@ -81,9 +157,107 @@ const PaymentForm = () => {
     }
   };
 
+  // Modify the handleChange function or add a new one for card payment
+  const handleCardPaymentChange = (e) => {
+    const amount = parseFloat(e.target.value) || 0;
+    const processingFee = amount * 0.03;
+    const total = (amount + processingFee).toFixed(2);
+
+    setFormData({
+      ...formData,
+      cardPayment: amount
+    });
+    setTotalAmount(total);
+  };
+
+  const handlePaymentClick = async () => {
+    // Generate a unique reference number
+    const reference = `ref${new Date().getTime()}`;
+    console.log("reference", reference);
+    const amount = totalAmount;
+    const currency = "LKR";
+    const appId = "CBN01190734B13223DDA9";
+    const hashSalt = "6XAN1190734B13223DDD8";
+    const hashString = appId + currency + amount + hashSalt;
+    console.log("hashString", hashString);
+    const hash = SHA256(hashString).toString();
+    console.log("hash", hash);
+
+
+
+
+    const contactData = await getContactData(state.user.uid);
+    // Get the cloud function URL from Firebase
+    // const callbackUrl = `https://${process.env.APP_REGION}-${process.env.APP_PROJECT_ID}.cloudfunctions.net/onepayCallback`;
+
+
+    let data = JSON.stringify({
+      "currency": "LKR",
+      "amount": totalAmount,
+      "app_id": appId,
+      "reference": reference,
+      "customer_first_name": "Mr./Mrs.",
+      "customer_last_name": contactData?.contactPersonName || "xxxx",
+      "customer_phone_number": contactData?.contactPersonPhone || "+94777777777",
+      "customer_email": contactData?.contactPersonEmail || "user@example.com",
+      "transaction_redirect_url": window.location.origin + "/section-five",
+      "hash": hash,
+      "additional_data": JSON.stringify({
+        userId: state.user.uid,
+        reference: reference,
+        enteredAmount: formData.cardPayment,
+        timestamp: new Date().toISOString()
+      }),
+    });
+
+    // First save the onepay reference to Firestore
+    const saveOnepayRef = async () => {
+      try {
+        const onepayRef = collection(db, 'onepay');
+        await addDoc(onepayRef, {
+          userId: state.user.uid,
+          reference: reference,
+          status: 'Pending',
+          createdAt: serverTimestamp()
+        });
+      } catch (error) {
+        console.error('Error saving onepay reference:', error);
+        return;
+      }
+    };
+
+
+    // Save reference then make onepay request
+    saveOnepayRef().then(() => {
+      axios.request({
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://api.onepay.lk/v3/checkout/link/',
+        headers: {
+          'Authorization': 'ab9e37baf2579dd2ca7ba920bbad67e9df7a65c10443ff330b2dd66a67a81d08cefd9751f596e9b2.YX4E1190734B13223DE36',
+          'Content-Type': 'application/json'
+        },
+        data: data
+      })
+        .then((response) => {
+          console.log("payment response", response.data.data.gateway.redirect_url);
+          const redirectUrl = response.data.data.gateway.redirect_url;
+          // Use navigate for redirection
+          window.open(redirectUrl, '_blank');
+        })
+        .catch((error) => {
+          console.log("payment error", error);
+        });
+    });
+  };
+
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target;
     setCheckboxValues({ ...checkboxValues, [name]: checked });
+  };
+
+  const handleTermsChange = (e) => {
+    setTermsAccepted(e.target.checked);
   };
 
   const uploadFile = async (file, userId) => {
@@ -116,8 +290,112 @@ const PaymentForm = () => {
     }
   };
 
+  const sendSubmitEmail = async () => {
+    const contactData = await getContactData(state.user.uid);
+    const businessData = await getBusinessData(state.user.uid);
+    const companyName = businessData?.companyName || "xxxxx";
+    const contactPersonName = contactData?.contactPersonName || "xxxx xxxx";
+    const contactPersonEmail = contactData?.contactPersonEmail || "xxx@xxx.com";
+    const contactPersonPhone = contactData?.contactPersonPhone || "0777777777";
+
+    const submissionDate = new Date().toLocaleDateString();
+    try {
+      const emailContent = {
+        to: 'nisaldayan@gmail.com', //admin email
+        message: {
+          subject: 'NOTCHLN - New Application Submission',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #4A90E2; font-size: 30px; font-weight: bold; margin: 0;">NOTCHLN</h1>
+              </div>
+              
+              <div style="background-color: #f8f9fa; border-radius: 10px; padding: 30px; margin-bottom: 20px;">
+                <h2 style="color: #333; font-size: 24px; margin-bottom: 20px; text-align: center;">New Application Submission</h2>
+                
+                <p style="color: #555; font-size: 16px; line-height: 1.5; margin-bottom: 20px; text-align: center;">
+                  A new application has been submitted for review.
+                </p>
+                
+                <div style="background-color: #fff; padding: 20px; border-radius: 5px; margin: 25px 0;">
+                  <h3 style="color: #333; font-size: 18px; margin-bottom: 15px;">Applicant Details:</h3>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td style="padding: 8px 0; color: #555; width: 40%;">Company Name:</td>
+                      <td style="padding: 8px 0; color: #333;">${companyName}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #555; width: 40%;">Contact Person:</td>
+                      <td style="padding: 8px 0; color: #333;">${contactPersonName}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #555;">Email:</td>
+                      <td style="padding: 8px 0; color: #333;">${contactPersonEmail}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #555;">Phone:</td>
+                      <td style="padding: 8px 0; color: #333;">${contactPersonPhone}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #555;">Submission Date:</td>
+                      <td style="padding: 8px 0; color: #333;">${submissionDate}</td>
+                    </tr>
+                  </table>
+                </div>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                  <a href="https://notchln.com/admin/dashboard" 
+                     style="background-color: #4A90E2; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                    View Application
+                  </a>
+                </div>
+              </div>
+              
+              <div style="color: #777; font-size: 12px; text-align: center; margin-top: 20px;">
+                <p>This is an automated notification from the NOTCHLN application system.</p>
+              </div>
+              
+              <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
+                <p style="color: #777; font-size: 12px;">
+                  © ${new Date().getFullYear()} NOTCHLN. All rights reserved.
+                </p>
+              </div>
+            </div>
+          `
+        }
+      };
+
+      const response = await fetch('https://us-central1-e-corporate.cloudfunctions.net/sendEmail', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailContent)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send email');
+      }
+
+      console.log('Submission notification sent to admin successfully');
+    } catch (error) {
+      console.error('Error sending submission notification:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!formData.paymentSlip && !cardPaymentCompleted) {
+      alert('Please complete the card payment or upload payment slip before submitting.');
+      return;
+    }
+    if (!termsAccepted) {
+      alert('Please accept the terms and conditions to continue.');
+      return;
+    }
+
+
     try {
       const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
 
@@ -142,9 +420,15 @@ const PaymentForm = () => {
 
       const formDataToSave = {
         paymentSlip,
+        checkPaymentSlip: state.user.role === 'user' ? false : checkboxValues.paymentSlip,
+        checkCardPayment: state.user.role === 'user' ? false : checkboxValues.cardPayment,
+        cardPayment: formData.cardPayment,
+        cardReference: formData.cardReference,
         status: state.user?.role === 'admin' ? 'Resubmit' : 'Pending',
         userId: userId,
         createdAt: serverTimestamp(),
+        termsAccepted: termsAccepted,
+        termsAcceptedAt: serverTimestamp()
       };
 
       // Check if document exists and update or create accordingly
@@ -152,10 +436,15 @@ const PaymentForm = () => {
         const docRef = doc(db, 'payments', querySnapshot.docs[0].id);
         await updateDoc(docRef, formDataToSave);
         await updateOverallStatus(userId, state, dispatch);
-
+        if (userRole !== 'user') {
+          await sendUpdateEmailToUser(userId);
+        } else {
+          await sendUpdateEmailToAdmin(userId);
+        }
         console.log('Payment information updated successfully!');
       } else {
         await addDoc(paymentsRef, formDataToSave);
+        await sendSubmitEmail();
         console.log('Payment information saved successfully!');
       }
 
@@ -165,7 +454,9 @@ const PaymentForm = () => {
         payload: {
           paymentSlip,
           status: formDataToSave.status,
-          userId: formDataToSave.userId
+          userId: formDataToSave.userId,
+          termsAccepted: termsAccepted,
+          termsAcceptedAt: serverTimestamp()
         }
       });
 
@@ -175,6 +466,8 @@ const PaymentForm = () => {
           paymentSlip: true
         });
       }
+
+
 
       navigate('/dashboard');
 
@@ -247,37 +540,112 @@ const PaymentForm = () => {
           {/* Existing fields... */}
 
           {/* Payment Slip Upload */}
-          <div className="mb-4">
+          <div className="mb-4 bg-gray-100 p-4 rounded-lg">
             <div className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                name="paymentSlip"
-                className="mr-2"
-                disabled={userRole === 'user'}
-                checked={checkboxValues.paymentSlip}
-                onChange={handleCheckboxChange}
-              />
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="paymentSlip"
+                  className="mr-2"
+                  checked={checkboxValues.paymentSlip}
+                  onChange={handleCheckboxChange}
+                />
+              )}
               <label className="block font-medium">Upload Payment Slip</label>
             </div>
-            <div className="space-y-2 flex items-center">
+            <div className="space-y-2 ">
               <input
                 type="file"
                 accept="image/*,application/pdf"
                 onChange={handleFileChange}
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
                 disabled={!checkboxValues.paymentSlip}
+                required={formData.paymentSlip ? false : true}
               />
-              <button
-                className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
-                onClick={() => handleView(formData.paymentSlip?.url)}
-              >
-                View
-              </button>
+              <div className="space-y-2 flex justify-center">
+                <button
+                  type="button"
+                  className="bg-blue-500 text-white px-10 rounded py-3"
+                  onClick={() => handleView(formData.paymentSlip?.url)}
+                >
+                  View
+                </button>
+              </div>
             </div>
             {formData.paymentSlip?.url && (
               <span className='text-green-500'>File Uploaded!</span>
             )}
           </div>
+
+          {/* Card Payment */}
+          <div className="mb-4 bg-gray-100 p-4 rounded-lg">
+            <div className="flex items-center mb-2">
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="cardPayment"
+                  className="mr-2"
+                  checked={checkboxValues.cardPayment}
+                  onChange={handleCheckboxChange}
+                />
+              )}
+              <label className="block font-medium">Card Payment</label>
+            </div>
+            <div className="space-y-2 ">
+              <input
+                type="number"
+                name="cardPayment"
+                value={formData.cardPayment}
+                placeholder="ENTER AMOUNT"
+                onChange={handleCardPaymentChange}
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                disabled={!checkboxValues.cardPayment}
+                required={formData.cardPayment ? false : true}
+              />
+              {formData.cardPayment > 0 && (
+                <div className="text-sm space-y-1">
+                  <p>Amount: LKR {formData.cardPayment.toLocaleString()}</p>
+                  <p>Processing fee (3%): LKR {(formData.cardPayment * 0.03).toLocaleString()}</p>
+                  <p className="font-semibold">Total amount: LKR {totalAmount.toLocaleString()}</p>
+                </div>
+              )}
+              <div className="space-y-2 flex justify-center">
+                <button
+                  type="button"
+                  className="bg-blue-500 text-white px-10 rounded py-3"
+                  onClick={handlePaymentClick}
+                >
+                  Pay
+                </button>
+              </div>
+            </div>
+            {cardPaymentCompleted && (
+              <span className='text-green-500'>Payment Successful!</span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center mt-4">
+          <input
+            type="checkbox"
+            id="terms"
+            checked={termsAccepted}
+            onChange={handleTermsChange}
+            className="mr-2"
+            required
+          />
+          <p className="text-black">
+            * I have read and agree to the &nbsp;
+            <a
+              href="https://corporate.lk/terms%20&%20conditions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              Terms and Conditions.
+            </a>
+
+          </p>
         </div>
 
         <div className="flex justify-between mt-6">
@@ -293,8 +661,9 @@ const PaymentForm = () => {
               onClick={handleSubmit}
               className="px-4 py-2 text-white bg-green-500 hover:bg-green-600 rounded"
             >
-              Save
+              Submit
             </button>
+
             {/* <button
               type="button"
               onClick={handleNext}

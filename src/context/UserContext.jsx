@@ -27,17 +27,27 @@ const initialState = {
   },
   businessInformation: {
     companyName: '',
-    businessType: '',
-    registrationNumber: '',
-    authorizedPersonName: '',
-    authorizedPersonEmail: '',
-    authorizedPersonPhone: '',
+    companyNameType: '',
+    companyLogo: null,
+    companyAddress: '',
+    companyProvince: '',
+    companyDistrict: '',
+    companyDivisionalOffice: '',
+    companyGNDivision: '',
+    companyPostalCode: '',
+    companyEmail: '',
+    businessDescription: '',
     checkCompanyName: true,
-    checkBusinessType: true,
-    checkRegistrationNumber: true,
-    checkAuthorizedPersonName: true,
-    checkAuthorizedPersonEmail: true,
-    checkAuthorizedPersonPhone: true,
+    checkcompanyNameType: true,
+    checkCompanyLogo: true,
+    checkCompanyAddress: true,
+    checkCompanyProvince: true,
+    checkCompanyDistrict: true,
+    checkCompanyDivisionalOffice: true,
+    checkCompanyGNDivision: true,
+    checkCompanyPostalCode: true,
+    checkCompanyEmail: true,
+    checkBusinessDescription: true,
     status: '',
     userId: null,
   },
@@ -58,9 +68,15 @@ const initialState = {
       url: null,
       path: null
     },
+    checkPaymentSlip: true,
+    checkCardPayment: true,
+    cardPayment: null,
+    cardReference: null,
     status: '',
     userId: null,
-    createdAt: null
+    createdAt: null,
+    termsAccepted: false,
+    termsAcceptedAt: null
   },
 };
 
@@ -118,7 +134,9 @@ const userReducer = (state, action) => {
           paymentSlip: action.payload.paymentSlip ? {
             url: action.payload.paymentSlip.url,
             path: action.payload.paymentSlip.path
-          } : null
+          } : null,
+          termsAccepted: action.payload.termsAccepted || false,
+          termsAcceptedAt: action.payload.termsAcceptedAt || null
         }
       };
 

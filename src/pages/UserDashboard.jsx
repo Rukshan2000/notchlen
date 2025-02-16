@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { fetchContactData, fetchBusinessData, fetchDirectorData, fetchShareholderData, fetchPaymentData } from "../utils/dashboardUtils";
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
 
+
 const Dashboard = () => {
   const { state, dispatch } = useUserContext();
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ const Dashboard = () => {
     navigate('/section-one', { state: { mode: 'edit' } });
   };
 
+
   const handleViewClick = () => {
     navigate('/form');
   };
@@ -40,6 +42,9 @@ const Dashboard = () => {
 
       <h1 className="mb-6 text-4xl font-bold">Your Approval Status</h1>
       <h1 className="mb-6 text-xl ">{state.companyInformation?.overallStatus}</h1>
+
+      {state.companyInformation?.companyId && <p className="mb-6 text-xl ">Company ID: {state.companyInformation?.companyId}</p>}
+
 
       <div className="flex flex-col justify-between w-full max-w-4xl p-6 rounded-lg shadow-lg">
         <div className="space-y-4">
@@ -70,6 +75,7 @@ const Dashboard = () => {
           >
             Edit
           </button>
+
         </div>
       </div>
     </div>
