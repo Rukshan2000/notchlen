@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { db, storage } from '../firebase'; // Import Firebase Storage
 import { collection, addDoc, serverTimestamp, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'; // Import Firebase storage methods
 import { useUserContext } from '../context/UserContext';
@@ -11,38 +10,86 @@ import { updateOverallStatus } from '../utils/statusUpdateUtils';
 import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
 import axios from 'axios';
 import { getBusinessData, getContactData } from '../utils/firebaseDataService';
+import { onAuthStateChanged } from 'firebase/auth';
+import { db, auth, storage } from '../firebase';
 
 
 const PaymentForm = () => {
-  const { state, dispatch } = useUserContext();
   const navigate = useNavigate(); // Initialize useNavigate hook
+  const { state, dispatch } = useUserContext();
+  const [userIdFromAdmin, setUserIdFromAdmin] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null); // State for preview modal
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [formData, setFormData] = useState({
     paymentSlip: null,
-    paymentSlipPreview: null
+    paymentSlipPreview: null,
+    cardPayment: null,
   });
 
   const [userRole, setUserRole] = useState('admin');
   const [checkboxValues, setCheckboxValues] = useState({
-    paymentSlip: true
+    paymentSlip: true,
+    cardPayment: true
   });
 
-  const [userIdFromAdmin, setUserIdFromAdmin] = useState(null);
+  // Add this state to track total amount
+  const [totalAmount, setTotalAmount] = useState(0);
 
-  const [previewUrl, setPreviewUrl] = useState(null); // State for preview modal
-
-  const [termsAccepted, setTermsAccepted] = useState(false);
-
+    // Auth state management useEffect
+    useEffect(() => {
+      // Check localStorage for auth data on component mount
+      const savedAuth = localStorage.getItem('authUser');
+      if (savedAuth) {
+        const authData = JSON.parse(savedAuth);
+        dispatch({
+          type: 'SET_USER',
+          payload: authData
+        });
+      }
+  
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        console.log('Auth State Changed:', user);
+  
+        if (user) {
+          // Update localStorage when auth state changes
+          const userDoc = await getUserDocumentByEmail(user.email);
+          const role = await getUserRole(userDoc.id);
+  
+          const authData = {
+            email: user.email,
+            uid: user.uid,
+            role: role,
+          };
+  
+          localStorage.setItem('authUser', JSON.stringify(authData));
+  
+          dispatch({
+            type: 'SET_USER',
+            payload: authData
+          });
+        } else {
+          // Clear localStorage when user signs out
+          localStorage.removeItem('authUser');
+          dispatch({ type: 'CLEAR_USER' });
+        }
+      });
+  
+      return () => unsubscribe();
+    }, [dispatch]);
+    
   useEffect(() => {
     if (state.paymentInformation.userId) {
       setFormData({
         paymentSlip: null, // Initialize the payment slip
-        paymentSlipPreview: null // Initialize the payment slip preview
+        paymentSlipPreview: null, // Initialize the payment slip preview
+        cardPayment: null,
       });
 
       setCheckboxValues({
         // paymentSlip: true
         paymentSlip: state.user.role === 'admin' ? false : true,
+        cardPayment: state.user.role === 'admin' ? false : true,
       });
     }
     if (state.user.role === 'user') {
@@ -86,52 +133,68 @@ const PaymentForm = () => {
     }
   };
 
+  // Modify the handleChange function or add a new one for card payment
+  const handleCardPaymentChange = (e) => {
+    const amount = parseFloat(e.target.value) || 0;
+    const processingFee = amount * 0.03;
+    const total = amount + processingFee;
+
+    setFormData({
+      ...formData,
+      cardPayment: amount
+    });
+    setTotalAmount(total);
+  };
+
   const handlePaymentClick = async () => {
     // Generate a unique reference number
     const reference = `ref${new Date().getTime()}`;
     console.log("reference", reference);
+    const amount = "150";//TODO : 2 DECIMAL PLACES
 
+    const contactData = await getContactData(state.user.uid);
     // Get the cloud function URL from Firebase
     // const callbackUrl = `https://${process.env.APP_REGION}-${process.env.APP_PROJECT_ID}.cloudfunctions.net/onepayCallback`;
 
 
     let data = JSON.stringify({
       "currency": "LKR",
-      "amount": 150.00,
+      "amount": amount,
       "app_id": "CBN01190734B13223DDA9",
       "reference": reference,
-      "customer_first_name": state.companyInformation?.contactPersonName || "first name",
-      "customer_last_name": "last name",
-      "customer_phone_number": state.companyInformation?.contactPersonPhone || "+94777777777",
-      "customer_email": state.companyInformation?.contactPersonEmail || "user@example.com",
-      "transaction_redirect_url": window.location.origin + "/payment-success",
+      "customer_first_name": "Mr./Mrs.",
+      "customer_last_name": contactData?.contactPersonName || "xxxx",
+      "customer_phone_number": contactData?.contactPersonPhone || "+94777777777",
+      "customer_email": contactData?.contactPersonEmail || "user@example.com",
+      "transaction_redirect_url": window.location.origin + "/section-five",
       "hash": "1ee71507ddd93f082f51740b1c0fc80298d1d99ef758d9b7132df209628c5a71",
       "additional_data": JSON.stringify({
         userId: state.user.uid,
-        timestamp: reference
+        reference: reference,
+        enteredAmount: formData.cardPayment,
+        timestamp: new Date().toISOString()
       }),
     });
 
-    // First save the payment reference to Firestore
-    const savePaymentRef = async () => {
+    // First save the onepay reference to Firestore
+    const saveOnepayRef = async () => {
       try {
-        const paymentRef = collection(db, 'payments');
-        await addDoc(paymentRef, {
+        const onepayRef = collection(db, 'onepay');
+        await addDoc(onepayRef, {
           userId: state.user.uid,
           reference: reference,
-          amount: 150.00,
           status: 'Pending',
           createdAt: serverTimestamp()
         });
       } catch (error) {
-        console.error('Error saving payment reference:', error);
+        console.error('Error saving onepay reference:', error);
         return;
       }
     };
 
 
-    // Save reference then make payment request
-    savePaymentRef().then(() => {
+    // Save reference then make onepay request
+    saveOnepayRef().then(() => {
       axios.request({
         method: 'post',
         maxBodyLength: Infinity,
@@ -146,9 +209,7 @@ const PaymentForm = () => {
           console.log("payment response", response.data.data.gateway.redirect_url);
           const redirectUrl = response.data.data.gateway.redirect_url;
           // Use navigate for redirection
-
           window.open(redirectUrl, '_blank');
-
         })
         .catch((error) => {
           console.log("payment error", error);
@@ -196,9 +257,9 @@ const PaymentForm = () => {
   };
 
   const sendSubmitEmail = async () => {
-    const contactData = await getContactData(state.user.uid); 
+    const contactData = await getContactData(state.user.uid);
     const businessData = await getBusinessData(state.user.uid);
-    const companyName = businessData?.companyName || "xxxxx"; 
+    const companyName = businessData?.companyName || "xxxxx";
     const contactPersonName = contactData?.contactPersonName || "xxxx xxxx";
     const contactPersonEmail = contactData?.contactPersonEmail || "xxx@xxx.com";
     const contactPersonPhone = contactData?.contactPersonPhone || "0777777777";
@@ -363,7 +424,7 @@ const PaymentForm = () => {
         });
       }
 
-   
+
 
       navigate('/dashboard');
 
@@ -436,7 +497,7 @@ const PaymentForm = () => {
           {/* Existing fields... */}
 
           {/* Payment Slip Upload */}
-          <div className="mb-4">
+          <div className="mb-4 bg-gray-100 p-4 rounded-lg">
             <div className="flex items-center mb-2">
               {userRole !== 'user' && (
                 <input
@@ -449,7 +510,7 @@ const PaymentForm = () => {
               )}
               <label className="block font-medium">Upload Payment Slip</label>
             </div>
-            <div className="space-y-2 flex items-center">
+            <div className="space-y-2 ">
               <input
                 type="file"
                 accept="image/*,application/pdf"
@@ -458,15 +519,65 @@ const PaymentForm = () => {
                 disabled={!checkboxValues.paymentSlip}
                 required={formData.paymentSlip ? false : true}
               />
-              <button
-                className="bg-blue-500 text-white px-3 rounded py-4 ms-2"
-                onClick={() => handleView(formData.paymentSlip?.url)}
-              >
-                View
-              </button>
+              <div className="space-y-2 flex justify-center">
+                <button
+                  type="button"
+                  className="bg-blue-500 text-white px-10 rounded py-3"
+                  onClick={() => handleView(formData.paymentSlip?.url)}
+                >
+                  View
+                </button>
+              </div>
             </div>
             {formData.paymentSlip?.url && (
               <span className='text-green-500'>File Uploaded!</span>
+            )}
+          </div>
+
+          {/* Card Payment */}
+          <div className="mb-4 bg-gray-100 p-4 rounded-lg">
+            <div className="flex items-center mb-2">
+              {userRole !== 'user' && (
+                <input
+                  type="checkbox"
+                  name="cardPayment"
+                  className="mr-2"
+                  checked={checkboxValues.cardPayment}
+                  onChange={handleCheckboxChange}
+                />
+              )}
+              <label className="block font-medium">Card Payment</label>
+            </div>
+            <div className="space-y-2 ">
+              <input
+                type="number"
+                name="cardPayment"
+                value={formData.cardPayment}
+                placeholder="ENTER AMOUNT"
+                onChange={handleCardPaymentChange}
+                className="w-full p-3 border border-gray-300 rounded-lg shadow-md"
+                disabled={!checkboxValues.cardPayment}
+                required={formData.cardPayment ? false : true}
+              />
+              {formData.cardPayment > 0 && (
+                <div className="text-sm space-y-1">
+                  <p>Amount: LKR {formData.cardPayment.toLocaleString()}</p>
+                  <p>Processing fee (3%): LKR {(formData.cardPayment * 0.03).toLocaleString()}</p>
+                  <p className="font-semibold">Total amount: LKR {totalAmount.toLocaleString()}</p>
+                </div>
+              )}
+              <div className="space-y-2 flex justify-center">
+                <button
+                  type="button"
+                  className="bg-blue-500 text-white px-10 rounded py-3"
+                  onClick={handlePaymentClick}
+                >
+                  Pay
+                </button>
+              </div>
+            </div>
+            {formData.cardPayment && (
+              <span className='text-green-500'>Payment Successful!</span>
             )}
           </div>
         </div>
@@ -509,13 +620,7 @@ const PaymentForm = () => {
             >
               Submit
             </button>
-            <button
-              type="button"
-              onClick={handlePaymentClick}
-              className="px-4 py-2 font-semibold text-white transition duration-200 bg-blue-500 rounded-lg hover:bg-blue-600"
-            >
-              Payment
-            </button>
+
             {/* <button
               type="button"
               onClick={handleNext}

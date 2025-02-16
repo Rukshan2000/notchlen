@@ -30,39 +30,44 @@ exports.onepayCallback = functions.https.onRequest(async (request, response) => 
             const paymentData = request.body;
             console.log('Payment callback received:', paymentData);
 
-            // Verify the payment status
-            if (paymentData.status === '1') {
+            // Parse the additional_data JSON string
+            const additionalData = JSON.parse(paymentData.additional_data);
+            const userId = additionalData.userId;
+            console.log("userId", userId);
+            
+            if (paymentData.status === '1' || paymentData.status === 1) {
+                console.log("status is 1 doing the update");
                 // Update payment status in Firestore
-                const paymentRef = admin.firestore()
-                    .collection('payments')
-                    .where('reference', '==', paymentData.reference);
+                const onepayRef = admin.firestore()
+                    .collection('onepay')
+                    .where('reference', '==', additionalData.reference);
 
-                const snapshot = await paymentRef.get();
+                const snapshot = await onepayRef.get();
 
                 if (!snapshot.empty) {
                     const docId = snapshot.docs[0].id;
                     await admin.firestore()
-                        .collection('payments')
+                        .collection('onepay')
                         .doc(docId)
                         .update({
                             status: 'Completed',
                             transactionId: paymentData.transaction_id,
                             paymentDate: admin.firestore.FieldValue.serverTimestamp(),
-                            paymentDetails: paymentData
+                            additionalData: additionalData
                         });
 
-                    // Update the overall status in contacts collection
-                    const userId = snapshot.docs[0].data().userId;
-                    const contactRef = admin.firestore()
-                        .collection('contacts')
-                        .where('userId', '==', userId);
+                    // // Update the overall status in contacts collection
+                    // const userId = snapshot.docs[0].data().userId;
+                    // const contactRef = admin.firestore()
+                    //     .collection('contacts')
+                    //     .where('userId', '==', userId);
 
-                    const contactSnapshot = await contactRef.get();
-                    if (!contactSnapshot.empty) {
-                        await contactSnapshot.docs[0].ref.update({
-                            overallStatus: 'Pending'
-                        });
-                    }
+                    // const contactSnapshot = await contactRef.get();
+                    // if (!contactSnapshot.empty) {
+                    //     await contactSnapshot.docs[0].ref.update({
+                    //         overallStatus: 'Pending'
+                    //     });
+                    // }
                 }
             }
 
@@ -112,7 +117,7 @@ exports.sendSMS = functions.https.onRequest((request, response) => {
         try {
             const data = request.body;
             const phoneNumber = data.to;
-            const apiKey = process.env.DIALOG_URL_MESSAGE_KEY; 
+            const apiKey = process.env.DIALOG_URL_MESSAGE_KEY;
             const mask = 'NOTCHLN';
             const message = data.message;
 
