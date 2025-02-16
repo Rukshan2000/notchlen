@@ -10,21 +10,19 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
 const cors = require('cors')({ origin: true });
+const axios = require('axios');
+const SHA256 = require('crypto-js/sha256');
 
 // Create and deploy your first functions
 // https://firebase.google.com/docs/functions/get-started
 
 admin.initializeApp();
 
-exports.onepayCallback = functions.https.onRequest(async (request, response) => {
+exports.onepayCallback = functions.https.onRequest((request, response) => {
     return cors(request, response, async () => {
-        // Only allow POST requests
         if (request.method !== 'POST') {
-            response.status(405).send('Method Not Allowed');
-            return;
+            return response.status(405).json({ error: 'Method not allowed' });
         }
-
-        console.log(request);
 
         try {
             const paymentData = request.body;
@@ -34,7 +32,7 @@ exports.onepayCallback = functions.https.onRequest(async (request, response) => 
             const additionalData = JSON.parse(paymentData.additional_data);
             const userId = additionalData.userId;
             console.log("userId", userId);
-            
+
             if (paymentData.status === '1' || paymentData.status === 1) {
                 console.log("status is 1 doing the update");
                 // Update payment status in Firestore
@@ -75,7 +73,7 @@ exports.onepayCallback = functions.https.onRequest(async (request, response) => 
             response.status(200).json({ status: 'success' });
         } catch (error) {
             console.error('Error processing payment callback:', error);
-            response.status(500).json({ status: 'error', message: error.message });
+            return response.status(500).json({ error: error.message });
         }
     });
 });
@@ -141,6 +139,77 @@ exports.sendSMS = functions.https.onRequest((request, response) => {
                 status: 'error',
                 message: 'Failed to send SMS'
             });
+        }
+    });
+});
+
+exports.initiatePayment = functions.https.onRequest((request, response) => {
+    return cors(request, response, async () => {
+        if (request.method !== 'POST') {
+            return response.status(405).json({ error: 'Method not allowed' });
+        }
+
+        try {
+            const { amount, userId } = request.body;
+            const reference = `ref${new Date().getTime()}`;
+            const currency = "LKR";
+            const appId = process.env.ONEPAY_APP_ID;
+            const hashSalt = process.env.ONEPAY_HASH_SALT;
+            const hashString = appId + currency + amount + hashSalt;
+            const hash = SHA256(hashString).toString();
+
+            // Get contact data from Firestore
+            const contactSnapshot = await admin.firestore()
+                .collection('contacts')
+                .where('userId', '==', userId)
+                .get();
+            const contactData = contactSnapshot.docs[0]?.data();
+
+            // Save reference to Firestore
+            await admin.firestore().collection('onepay').add({
+                userId: userId,
+                reference: reference,
+                status: 'Pending',
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Prepare payment data
+            const paymentData = {
+                currency: "LKR",
+                amount: amount,
+                app_id: appId,
+                reference: reference,
+                customer_first_name: "Mr./Mrs.",
+                customer_last_name: contactData?.contactPersonName || "xxxx",
+                customer_phone_number: contactData?.contactPersonPhone || "+94777777777",
+                customer_email: contactData?.contactPersonEmail || "user@example.com",
+                transaction_redirect_url: `${process.env.APP_URL}/section-five`,
+                hash: hash,
+                additional_data: JSON.stringify({
+                    userId: userId,
+                    reference: reference,
+                    enteredAmount: amount,
+                    timestamp: new Date().toISOString()
+                })
+            };
+
+            // Make request to Onepay
+            const onepayResponse = await axios.post('https://api.onepay.lk/v3/checkout/link/',
+                paymentData,
+                {
+                    headers: {
+                        'Authorization': process.env.ONEPAY_AUTH_TOKEN,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            response.status(200).json({
+                redirectUrl: onepayResponse.data.data.gateway.redirect_url
+            });
+        } catch (error) {
+            console.error('Payment initiation error:', error);
+            return response.status(500).json({ error: 'Payment initiation failed' });
         }
     });
 }); 

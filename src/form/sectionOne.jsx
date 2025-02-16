@@ -160,6 +160,11 @@ const CorporateBusinessForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!otpEmailVerified || !otpSmsVerified) { //TODO : skip varification for now
+      alert('Please verify your email and phone number before submitting.');
+      return;
+    }
+
     try {
       const dataToAdd = {
         ...formData,
