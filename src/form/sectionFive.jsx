@@ -9,9 +9,10 @@ import { fetchPaymentData, savePaymentData } from '../utils/dashboardUtils';
 import { updateOverallStatus } from '../utils/statusUpdateUtils';
 import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
 import axios from 'axios';
-import { getBusinessData, getContactData } from '../utils/firebaseDataService';
+import { getBusinessData, getContactData, getOnepayData } from '../utils/firebaseDataService';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth, storage } from '../firebase';
+import { getUserDocumentByEmail, getUserRole } from '../firestore';
 
 
 const PaymentForm = () => {
@@ -20,11 +21,12 @@ const PaymentForm = () => {
   const [userIdFromAdmin, setUserIdFromAdmin] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null); // State for preview modal
   const [termsAccepted, setTermsAccepted] = useState(false);
-
+  const [cardPaymentCompleted, setCardPaymentCompleted] = useState(false);
   const [formData, setFormData] = useState({
     paymentSlip: null,
     paymentSlipPreview: null,
     cardPayment: null,
+    cardReference: null,
   });
 
   const [userRole, setUserRole] = useState('admin');
@@ -102,6 +104,7 @@ const PaymentForm = () => {
 
   useEffect(() => {
     const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
+
     fetchPaymentData(userId, dispatch).then(paymentData => {
       if (paymentData?.paymentSlip) {
         setFormData({
@@ -109,11 +112,31 @@ const PaymentForm = () => {
           paymentSlipPreview: paymentData.paymentSlip?.url || null
         });
         setCheckboxValues({
-          paymentSlip: state.user.role === 'admin' ? false : true,
+          paymentSlip: state.user.role === 'admin' ? false : state.paymentInformation.checkPaymentSlip ?? true,
         });
         setTermsAccepted(paymentData.termsAccepted || false);
       }
     });
+
+    const fetchOnepayData = async () => {
+      const onepayData = await getOnepayData(userId);
+      console.log("onepayData", onepayData);
+      if (onepayData?.status === 'Completed') {
+        setCardPaymentCompleted(true);
+        setFormData({
+          cardPayment: onepayData.additionalData.enteredAmount || null, //TODO : enable this
+          // cardPayment: onepayData.amount || null,
+          cardReference: onepayData.additionalData.reference || null,
+        });
+        setCheckboxValues({
+          cardPayment: false
+        });
+      }
+
+
+    };
+
+    fetchOnepayData();
   }, [state.user, userIdFromAdmin, dispatch]);
 
   const handleChange = (e) => {
@@ -351,11 +374,16 @@ const PaymentForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    
+    if (!formData.paymentSlip && !cardPaymentCompleted) {
+      alert('Please complete the card payment or upload payment slip before submitting.');
+      return;
+    }
     if (!termsAccepted) {
       alert('Please accept the terms and conditions to continue.');
       return;
     }
+
 
     try {
       const userId = state.user?.role === 'admin' ? userIdFromAdmin : state.user?.uid;
@@ -381,6 +409,10 @@ const PaymentForm = () => {
 
       const formDataToSave = {
         paymentSlip,
+        checkPaymentSlip: state.user.role === 'user' ? false : checkboxValues.paymentSlip,
+        checkCardPayment: state.user.role === 'user' ? false : checkboxValues.cardPayment,
+        cardPayment: formData.cardPayment,
+        cardReference: formData.cardReference,
         status: state.user?.role === 'admin' ? 'Resubmit' : 'Pending',
         userId: userId,
         createdAt: serverTimestamp(),
@@ -576,7 +608,7 @@ const PaymentForm = () => {
                 </button>
               </div>
             </div>
-            {formData.cardPayment && (
+            {cardPaymentCompleted && (
               <span className='text-green-500'>Payment Successful!</span>
             )}
           </div>

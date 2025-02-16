@@ -51,6 +51,18 @@ const getContactData = async (userId) => {
     }
 };
 
+const getOnepayData = async (userId) => {
+    try {
+        const onepayRef = collection(db, 'onepay');
+        const snapshot = await getDocs(query(onepayRef, where('userId', '==', userId)));
+        return snapshot.docs[0]?.data() || null;
+    } catch (error) {
+        console.error('Error fetching onepay data:', error);
+        throw error;
+    }
+};
+
+
 const getVarifyData = async (userId) => {
     try {
         const varifyRef = collection(db, 'varify');
@@ -109,6 +121,7 @@ const getPaymentData = async (userId) => {
 export {
     getApplicationData,
     getContactData,
+    getOnepayData,
     getVarifyData,
     getBusinessData,
     getDirectorData,

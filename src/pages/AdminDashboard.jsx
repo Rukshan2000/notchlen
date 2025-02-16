@@ -131,7 +131,7 @@ const Dashboard = () => {
 
       const deletePromises = userIds.map(async (userId) => {
         // Delete from multiple collections
-        const collections = ["contacts", "business", "directors", "payments", "shareholders"];
+        const collections = ["contacts", "business", "directors", "payments", "shareholders", "onepay", "varify"];
         const deleteDocPromises = collections.map(async (collectionName) => {
           // Query for documents where userId matches
           const q = query(collection(db, collectionName), where('userId', '==', userId));

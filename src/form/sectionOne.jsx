@@ -15,6 +15,7 @@ import { functions } from '../firebase';
 import { sendUpdateEmailToAdmin, sendUpdateEmailToUser } from '../utils/emailService';
 import { getContactData, getVarifyData } from '../utils/firebaseDataService';
 
+
 const CorporateBusinessForm = () => {
   const { state, dispatch } = useUserContext();
   console.log("state is the one", state);

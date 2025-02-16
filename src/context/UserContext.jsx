@@ -68,6 +68,10 @@ const initialState = {
       url: null,
       path: null
     },
+    checkPaymentSlip: true,
+    checkCardPayment: true,
+    cardPayment: null,
+    cardReference: null,
     status: '',
     userId: null,
     createdAt: null,
