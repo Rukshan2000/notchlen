@@ -130,15 +130,21 @@ const CorporateBusinessForm = () => {
   useEffect(() => {
     const checkVerification = async () => {
       const varifyData = await getVarifyData(state.user.uid);
-      if (varifyData.contactPersonEmailVarified === formData.contactPersonEmail) {
+      if (varifyData.contactPersonEmailVarified && varifyData.contactPersonEmailVarified === formData.contactPersonEmail) {
         setOtpEmailVerified(true);
       } else {
         setOtpEmailVerified(false);
       }
+
+      if (varifyData.contactPersonPhoneVarified && varifyData.contactPersonPhoneVarified === formData.contactPersonPhone) {
+        setOtpSmsVerified(true);
+      } else {
+        setOtpSmsVerified(false);
+      }
     };
 
     checkVerification();
-  }, [state.user, formData.contactPersonEmail]);
+  }, [state.user, formData.contactPersonEmail, formData.contactPersonPhone]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -282,10 +288,10 @@ const CorporateBusinessForm = () => {
       }
 
       setOtpEmailSent(true);
-      alert('OTP sent successfully!');
+      // alert('OTP sent successfully!');
     } catch (error) {
       console.error('Error sending OTP:', error);
-      alert('Failed to send OTP. Please try again.');
+      // alert('Failed to send OTP. Please try again.');
     }
   };
 
@@ -343,10 +349,10 @@ const CorporateBusinessForm = () => {
 
       setOtp(otp); // Save OTP for verification
       setOtpSmsSent(true);
-      alert('OTP sent successfully!');
+      // alert('OTP sent successfully!');
     } catch (error) {
       console.error('Error sending OTP:', error);
-      alert('Failed to send OTP. Please try again.');
+      // alert('Failed to send OTP. Please try again.');
     }
   };
 
